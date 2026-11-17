@@ -1,0 +1,2369 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地殼的脈動：3D 板塊構造互動實驗室 | 大大教學</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Noto Sans TC & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js r128 & OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        magma: {
+                            400: '#fb923c',
+                            500: '#f97316',
+                            600: '#ea580c',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #0b0f19;
+            color: #f1f5f9;
+            overflow-x: hidden;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* 3D Floating HTML Labels */
+        .label-3d {
+            position: absolute;
+            transform: translate(-50%, -100%);
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.1s ease;
+            z-index: 20;
+            white-space: nowrap;
+        }
+        .label-3d::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px 5px 0;
+            border-style: solid;
+            border-color: rgba(15, 23, 42, 0.92) transparent transparent;
+        }
+        .label-pin {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            position: absolute;
+            bottom: -11px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        /* Glassmorphism panels */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.6);
+        }
+        
+        /* Pulse animation for active buttons */
+        @keyframes subtle-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); }
+            50% { box-shadow: 0 0 0 6px rgba(249, 115, 22, 0); }
+        }
+        .btn-active-glow {
+            animation: subtle-pulse 2.2s infinite;
+        }
+
+        /* Range Slider Custom Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            height: 6px;
+            border-radius: 4px;
+            background: #334155;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #f97316;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(249, 115, 22, 0.8);
+            border: 2px solid #fff;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col select-none">
+
+    <!-- Top Navigation Header -->
+    <header class="glass-panel sticky top-0 z-40 px-4 py-2.5 border-b border-slate-800/80 shadow-lg">
+        <div class="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-3">
+            <!-- Brand & Title -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 via-red-600 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
+                    <i class="fa-solid fa-earth-asia text-white text-xl animate-spin" style="animation-duration: 24s;"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-lg md:text-xl font-black tracking-tight bg-gradient-to-r from-white via-orange-100 to-amber-300 bg-clip-text text-transparent">
+                            地殼的脈動：3D 板塊構造互動實驗室
+                        </h1>
+                        <span class="hidden sm:inline-block px-2 py-0.5 text-[11px] font-bold bg-orange-500/20 text-orange-300 border border-orange-500/40 rounded-full">
+                            國三地球科學・108課綱
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-400 flex items-center gap-2">
+                        <span><i class="fa-solid fa-chalkboard-user text-amber-400 mr-1"></i>作者：大大教學</span>
+                        <span class="text-slate-600">|</span>
+                        <span class="hidden md:inline text-slate-400">支援 360° 旋轉、地殼透視與抽問模式</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- 4 Main Module Navigation Tabs -->
+            <nav class="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 overflow-x-auto max-w-full">
+                <button onclick="switchModule('module1')" id="tab-module1" class="module-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span>1. 理論與岩石圈</span>
+                </button>
+                <button onclick="switchModule('module2')" id="tab-module2" class="module-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-cubes-stacked"></i>
+                    <span>2. 板塊交界實驗室</span>
+                </button>
+                <button onclick="switchModule('module3')" id="tab-module3" class="module-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-mountain-sun"></i>
+                    <span>3. 臺灣板塊構造</span>
+                </button>
+                <button onclick="switchModule('module4')" id="tab-module4" class="module-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-trophy text-amber-400"></i>
+                    <span>4. 會考隨堂挑戰</span>
+                    <span id="quiz-score-badge" class="ml-1 px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded text-[11px] font-mono">0/100</span>
+                </button>
+            </nav>
+
+            <!-- Quick Summary Table Trigger -->
+            <div class="flex items-center gap-2">
+                <button onclick="toggleSummaryModal(true)" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold flex items-center gap-1.5 transition shadow">
+                    <i class="fa-solid fa-table-list text-cyan-400"></i>
+                    <span class="hidden sm:inline">會考重點總整理表</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Split Workspace -->
+    <main class="flex-1 max-w-[1600px] w-full mx-auto p-3 md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+
+        <!-- Left / Center: 3D Interactive Stage (7 or 8 cols on desktop) -->
+        <section class="lg:col-span-7 xl:col-span-8 flex flex-col rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 relative min-h-[440px] lg:min-h-[640px] shadow-2xl">
+            
+            <!-- Top Floating HUD inside 3D Viewport -->
+            <div class="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+                <!-- Current Scene Title Pill -->
+                <div class="glass-panel px-3.5 py-2 rounded-xl pointer-events-auto flex items-center gap-3 shadow-lg border-l-4 border-l-orange-500">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span id="scene-badge" class="text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-orange-500/20 text-orange-300">
+                                張裂性交界
+                            </span>
+                            <h2 id="scene-title" class="text-sm md:text-base font-black text-white">中洋脊與海底擴張 3D 模型</h2>
+                        </div>
+                        <p id="scene-subtitle" class="text-xs text-slate-300 mt-0.5">熱對流上升・拉張力作用・新海洋地殼生成</p>
+                    </div>
+                </div>
+
+                <!-- Right Camera & Display Quick Tools -->
+                <div class="flex flex-wrap items-center gap-1.5 pointer-events-auto">
+                    <button onclick="toggleLabels()" id="btn-toggle-labels" class="glass-panel px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 transition border border-emerald-500/50 text-emerald-300" title="關閉標籤可用於課堂抽問學生！">
+                        <i class="fa-solid fa-tags"></i>
+                        <span>地質標籤：開</span>
+                    </button>
+                    <button onclick="toggleXRay()" id="btn-toggle-xray" class="glass-panel px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 transition text-slate-300" title="半透明化地殼以觀察內部震源與岩漿">
+                        <i class="fa-solid fa-eye"></i>
+                        <span>剖面透視：關</span>
+                    </button>
+                    <button onclick="toggleQuakes()" id="btn-toggle-quakes" class="glass-panel px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 transition border border-amber-500/50 text-amber-300" title="顯示淺、中、深源地震震源分布">
+                        <i class="fa-solid fa-house-crack"></i>
+                        <span>震源閃光：開</span>
+                    </button>
+                    <button onclick="resetCamera()" class="glass-panel px-2.5 py-1.5 rounded-xl text-xs font-bold hover:bg-slate-800 text-slate-300 transition" title="重置 3D 視角">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Scene Switcher Bar (Always Accessible at Top-Left under HUD when needed) -->
+            <div class="absolute top-20 left-3 z-20 flex flex-col gap-1.5 pointer-events-auto">
+                <div class="glass-panel p-1.5 rounded-xl flex flex-col gap-1 shadow-lg">
+                    <span class="text-[10px] font-bold text-slate-400 px-2 pt-0.5">3D 模型快速切換</span>
+                    <button onclick="loadScene('lithosphere')" id="scene-btn-lithosphere" class="scene-select-btn text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                        <span>岩石圈 vs 軟流圈</span>
+                    </button>
+                    <button onclick="loadScene('divergent')" id="scene-btn-divergent" class="scene-select-btn text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+                        <span>張裂性交界 (中洋脊)</span>
+                    </button>
+                    <button onclick="loadScene('convergent_oc')" id="scene-btn-convergent_oc" class="scene-select-btn text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                        <span>聚合性：海陸隱沒</span>
+                    </button>
+                    <button onclick="loadScene('convergent_cc')" id="scene-btn-convergent_cc" class="scene-select-btn text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+                        <span>聚合性：陸陸造山</span>
+                    </button>
+                    <button onclick="loadScene('transform')" id="scene-btn-transform" class="scene-select-btn text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span>錯動性交界 (轉形斷層)</span>
+                    </button>
+                    <button onclick="loadScene('taiwan')" id="scene-btn-taiwan" class="scene-select-btn text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <span>臺灣板塊碰撞模型</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3D WebGL Canvas Container -->
+            <div id="canvas-container" class="w-full h-full flex-1 relative cursor-grab active:cursor-grabbing overflow-hidden">
+                <!-- Dynamic 3D Labels Container -->
+                <div id="labels-container" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+            </div>
+
+            <!-- Bottom Floating Control Bar inside 3D Viewport -->
+            <div class="absolute bottom-3 left-3 right-3 z-20 flex flex-col gap-2 pointer-events-none">
+                <!-- Interactive Geological Evolution / Collision Timeline Bar -->
+                <div class="glass-panel px-3.5 py-2 rounded-xl pointer-events-auto flex flex-wrap items-center justify-between gap-3 border border-orange-500/40 shadow-lg">
+                    <div class="flex items-center gap-2">
+                        <button onclick="togglePause()" id="btn-play-pause" class="w-8 h-8 rounded-lg bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center transition shadow" title="播放/暫停板塊運動">
+                            <i class="fa-solid fa-pause text-xs" id="icon-play-pause"></i>
+                        </button>
+                        <button onclick="replayCollision()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1 transition" title="從頭重播兩板塊接近與碰撞過程">
+                            <i class="fa-solid fa-backward-step"></i>
+                            <span>重播碰撞</span>
+                        </button>
+                    </div>
+
+                    <!-- Collision / Motion Phase Progress Slider -->
+                    <div class="flex-1 min-w-[180px] flex flex-col gap-1">
+                        <div class="flex items-center justify-between text-[11px] font-bold">
+                            <span id="phase-status-text" class="text-amber-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-Forward-fast text-orange-400"></i>
+                                <span>板塊動態演化中：兩側板塊接近與碰撞隱沒</span>
+                            </span>
+                            <span id="cycle-percent-label" class="text-orange-400 font-mono">0%</span>
+                        </div>
+                        <input type="range" id="cycle-slider" min="0" max="100" step="1" value="0" oninput="scrubCycle(this.value)" class="w-full">
+                    </div>
+
+                    <!-- Speed Multiplier -->
+                    <div class="flex items-center gap-2 border-l border-slate-700 pl-3">
+                        <div class="flex flex-col">
+                            <div class="flex items-center justify-between text-[11px] font-bold gap-2">
+                                <span class="text-slate-300">運動速率</span>
+                                <span id="speed-label" class="text-orange-400 font-mono">1.2x</span>
+                            </div>
+                            <input type="range" id="speed-slider" min="0.2" max="3" step="0.2" value="1.2" oninput="updateSpeed(this.value)" class="w-20 md:w-24">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Earthquake Depth & Layer Legend -->
+                <div class="glass-panel px-3 py-1.5 rounded-xl pointer-events-auto flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-yellow-300 shadow-[0_0_8px_#fde047]"></span>
+                            <span class="text-slate-300">淺源地震 (0-70km)</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_8px_#f97316]"></span>
+                            <span class="text-slate-300">中源地震 (70-300km)</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-red-600 shadow-[0_0_8px_#dc2626]"></span>
+                            <span class="text-slate-300">深源地震 (>300km)</span>
+                        </div>
+                    </div>
+                    <span class="hidden sm:inline text-slate-400"><i class="fa-solid fa-computer-mouse mr-1 text-orange-400"></i>左鍵旋轉・滾輪縮放・右鍵平移</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right: Interactive Learning & Control Panel (5 or 4 cols on desktop) -->
+        <aside class="lg:col-span-5 xl:col-span-4 flex flex-col gap-3 max-h-[820px] overflow-y-auto pr-1">
+
+            <!-- ==================== MODULE 1: 理論基石與岩石圈 ==================== -->
+            <div id="panel-module1" class="module-panel flex flex-col gap-3">
+                <div class="glass-panel p-4 rounded-2xl border-t-4 border-t-cyan-400">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-cyan-400 uppercase tracking-wider">Module 01・核心觀念</span>
+                        <span class="text-xs bg-cyan-500/10 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/30">會考必考迷思破解</span>
+                    </div>
+                    <h2 class="text-lg font-black text-white mb-2">什麼是「板塊」？地殼 ≠ 板塊！</h2>
+                    <p class="text-xs md:text-sm text-slate-300 leading-relaxed mb-3">
+                        許多同學誤以為「板塊就是地殼」，其實<strong class="text-amber-300">板塊指的是「岩石圈」</strong>！它包含了堅硬的<strong class="text-cyan-300">地殼</strong>加上<strong class="text-cyan-300">上部地函最頂部</strong>（厚度約 100 公里），漂浮在下方高溫、具可塑性的<strong class="text-orange-400">軟流圈</strong>之上。
+                    </p>
+
+                    <!-- Interactive Comparison Cards: Continental vs Oceanic Crust -->
+                    <div class="grid grid-cols-2 gap-2.5 mb-3">
+                        <div onclick="focusLithospherePart('continental')" class="cursor-pointer p-3 rounded-xl bg-slate-900/90 border border-amber-500/40 hover:border-amber-400 transition group">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-black text-amber-300">大陸地殼</span>
+                                <i class="fa-solid fa-mountain text-amber-400 group-hover:scale-110 transition"></i>
+                            </div>
+                            <ul class="text-xs text-slate-300 space-y-1">
+                                <li>• 厚度：<strong class="text-white">較厚 (35~70 km)</strong></li>
+                                <li>• 岩石：<strong class="text-amber-200">花崗岩質</strong>為主</li>
+                                <li>• 密度：<strong class="text-emerald-300">較小 (~2.7 g/cm³)</strong></li>
+                                <li>• 隱沒：<strong class="text-slate-400">不易隱沒（浮在上方）</strong></li>
+                            </ul>
+                        </div>
+                        <div onclick="focusLithospherePart('oceanic')" class="cursor-pointer p-3 rounded-xl bg-slate-900/90 border border-sky-500/40 hover:border-sky-400 transition group">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-black text-sky-300">海洋地殼</span>
+                                <i class="fa-solid fa-water text-sky-400 group-hover:scale-110 transition"></i>
+                            </div>
+                            <ul class="text-xs text-slate-300 space-y-1">
+                                <li>• 厚度：<strong class="text-white">較薄 (5~10 km)</strong></li>
+                                <li>• 岩石：<strong class="text-sky-200">玄武岩質</strong>為主</li>
+                                <li>• 密度：<strong class="text-rose-300">較大 (~3.0 g/cm³)</strong></li>
+                                <li>• 隱沒：<strong class="text-rose-300">碰撞時向下隱沒！</strong></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="p-2.5 rounded-xl bg-orange-500/10 border border-orange-500/30 text-xs text-orange-200 flex items-start gap-2">
+                        <i class="fa-solid fa-lightbulb text-orange-400 mt-0.5"></i>
+                        <span><strong>記憶口訣：</strong>海洋地殼是「玄武岩（密度大、重）」，碰到大陸地殼「花崗岩（密度小、輕）」時，重的海洋地殼一定往下面鑽（隱沒）！</span>
+                    </div>
+                </div>
+
+                <!-- Interactive Timeline: Drift -> Seafloor Spreading -> Plate Tectonics -->
+                <div class="glass-panel p-4 rounded-2xl">
+                    <h3 class="text-sm font-black text-white mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-timeline text-orange-400"></i>
+                        <span>學說演進三部曲（點擊切換 3D 觀察）</span>
+                    </h3>
+                    <div class="space-y-2.5">
+                        <!-- Step 1 -->
+                        <div onclick="selectTheoryStep(1)" id="theory-card-1" class="theory-card cursor-pointer p-3 rounded-xl bg-slate-900/80 border border-slate-700 hover:border-orange-500/60 transition">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-black text-amber-400">1912 韋格納：大陸漂移學說</span>
+                                <span class="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-300">盤古大陸</span>
+                            </div>
+                            <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">
+                                <strong>證據：</strong>南美洲與非洲海岸線吻合、中龍與舌羊齒化石跨洋分布、冰川遺跡。<br>
+                                <span class="text-rose-400"><strong>當時限制：</strong>無法合理解釋大陸移動的「動力來源」。</span>
+                            </p>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div onclick="selectTheoryStep(2)" id="theory-card-2" class="theory-card cursor-pointer p-3 rounded-xl bg-slate-900/80 border border-slate-700 hover:border-orange-500/60 transition">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-black text-orange-400">1962 赫斯：海底擴張學說</span>
+                                <span class="text-[11px] px-2 py-0.5 rounded bg-orange-500/20 text-orange-300">點此看 3D 中洋脊</span>
+                            </div>
+                            <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">
+                                <strong>動力突破：</strong>地函<strong class="text-orange-300">熱對流</strong>上升！岩漿自「中洋脊」湧出冷卻形成新海洋地殼。<br>
+                                <strong>三大證據：</strong>① 離中洋脊越遠，地殼年齡越老 ② 沉積物越厚 ③ 地磁倒轉條帶以中洋脊為軸對稱分布。
+                            </p>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div onclick="selectTheoryStep(3)" id="theory-card-3" class="theory-card cursor-pointer p-3 rounded-xl bg-slate-900/80 border border-cyan-500/60 transition">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-black text-cyan-400">1960s 末期：板塊構造學說</span>
+                                <span class="text-[11px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300">現代標準理論</span>
+                            </div>
+                            <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">
+                                整合前兩者！地球表層由數個堅硬的<strong class="text-cyan-300">岩石圈（板塊）</strong>拼合而成，受下方<strong class="text-orange-400">軟流圈熱對流</strong>帶動，在板塊交界處產生張裂、聚合、錯動，引發火山、地震與造山運動。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== MODULE 2: 3D 板塊交界實驗室 ==================== -->
+            <div id="panel-module2" class="module-panel hidden flex-col gap-3">
+                <div class="glass-panel p-4 rounded-2xl border-t-4 border-t-orange-500">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-orange-400 uppercase tracking-wider">Module 02・交界實驗室</span>
+                        <span class="text-xs bg-orange-500/10 text-orange-300 px-2 py-0.5 rounded border border-orange-500/30">點擊按鈕切換 3D 模擬</span>
+                    </div>
+                    <h2 class="text-lg font-black text-white mb-2">三大板塊交界類型與應力</h2>
+
+                    <!-- 4 Boundary Type Selector Buttons -->
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <button onclick="loadScene('divergent')" id="bound-btn-divergent" class="bound-btn p-2.5 rounded-xl border text-left transition flex flex-col justify-between">
+                            <div class="flex items-center justify-between w-full">
+                                <span class="text-xs font-black">1. 張裂性交界</span>
+                                <i class="fa-solid fa-arrows-left-right text-orange-400"></i>
+                            </div>
+                            <span class="text-[11px] text-slate-400 mt-1">拉張力・熱對流上升</span>
+                        </button>
+
+                        <button onclick="loadScene('convergent_oc')" id="bound-btn-convergent_oc" class="bound-btn p-2.5 rounded-xl border text-left transition flex flex-col justify-between">
+                            <div class="flex items-center justify-between w-full">
+                                <span class="text-xs font-black">2A. 聚合(海陸隱沒)</span>
+                                <i class="fa-solid fa-angles-down text-rose-400"></i>
+                            </div>
+                            <span class="text-[11px] text-slate-400 mt-1">擠壓力・海溝與火山島弧</span>
+                        </button>
+
+                        <button onclick="loadScene('convergent_cc')" id="bound-btn-convergent_cc" class="bound-btn p-2.5 rounded-xl border text-left transition flex flex-col justify-between">
+                            <div class="flex items-center justify-between w-full">
+                                <span class="text-xs font-black">2B. 聚合(陸陸造山)</span>
+                                <i class="fa-solid fa-mountain text-purple-400"></i>
+                            </div>
+                            <span class="text-[11px] text-slate-400 mt-1">擠壓力・高大褶皺山脈</span>
+                        </button>
+
+                        <button onclick="loadScene('transform')" id="bound-btn-transform" class="bound-btn p-2.5 rounded-xl border text-left transition flex flex-col justify-between">
+                            <div class="flex items-center justify-between w-full">
+                                <span class="text-xs font-black">3. 錯動性交界</span>
+                                <i class="fa-solid fa-arrows-up-down text-emerald-400"></i>
+                            </div>
+                            <span class="text-[11px] text-slate-400 mt-1">剪力・轉形斷層無火山</span>
+                        </button>
+                    </div>
+
+                    <!-- Dynamic Boundary Details Box -->
+                    <div id="boundary-detail-box" class="p-3.5 rounded-xl bg-slate-900/95 border border-slate-700/80 space-y-2.5">
+                        <!-- Populated dynamically via JS when scene switches -->
+                    </div>
+                </div>
+
+                <!-- Special Classroom Feature: Seafloor Rock Age / Fault Inspector -->
+                <div class="glass-panel p-4 rounded-2xl">
+                    <h3 class="text-sm font-black text-white mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass-chart text-amber-400"></i>
+                        <span>會考高頻考點即時解析</span>
+                    </h3>
+                    <div id="boundary-exam-tip" class="text-xs text-slate-300 leading-relaxed space-y-2">
+                        <!-- Updated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== MODULE 3: 臺灣在哪裡？ ==================== -->
+            <div id="panel-module3" class="module-panel hidden flex-col gap-3">
+                <div class="glass-panel p-4 rounded-2xl border-t-4 border-t-amber-400">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Module 03・在地化專區</span>
+                        <span class="text-xs bg-amber-500/10 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">聚合性交界代表</span>
+                    </div>
+                    <h2 class="text-lg font-black text-white mb-1">臺灣的誕生：兩大板塊劇烈碰撞</h2>
+                    <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                        臺灣位於西側<strong class="text-amber-300">歐亞板塊</strong>與東側<strong class="text-sky-300">菲律賓海板塊</strong>的<strong>聚合性交界處</strong>。菲律賓海板塊每年以約 7~8 公分的速度向西北方推擠，造就了臺灣密集的地震與高聳山脈！
+                    </p>
+
+                    <!-- Camera Focus Presets for Taiwan Model -->
+                    <div class="space-y-2 mb-3">
+                        <span class="text-xs font-bold text-slate-400 block">點擊切換 3D 觀察視角：</span>
+                        <button onclick="focusTaiwanRegion('all')" id="tw-btn-all" class="w-full p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-amber-500/50 text-left flex items-center justify-between transition">
+                            <div>
+                                <div class="text-xs font-black text-amber-300">① 全景立體視角：歐亞 vs. 菲律賓海板塊</div>
+                                <div class="text-[11px] text-slate-400">觀察花東縱谷板塊縫合線與整體應力方向</div>
+                            </div>
+                            <i class="fa-solid fa-compass text-amber-400"></i>
+                        </button>
+
+                        <button onclick="focusTaiwanRegion('north')" id="tw-btn-north" class="w-full p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-left flex items-center justify-between transition">
+                            <div>
+                                <div class="text-xs font-black text-sky-300">② 東北外海視角：琉球海溝與大屯火山群</div>
+                                <div class="text-[11px] text-slate-400">菲律賓海板塊向北隱沒至歐亞板塊下方（震源由南向北變深）</div>
+                            </div>
+                            <i class="fa-solid fa-volcano text-rose-400"></i>
+                        </button>
+
+                        <button onclick="focusTaiwanRegion('east')" id="tw-btn-east" class="w-full p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-left flex items-center justify-between transition">
+                            <div>
+                                <div class="text-xs font-black text-emerald-300">③ 花東縱谷與中央山脈：弧陸碰撞造山</div>
+                                <div class="text-[11px] text-slate-400">海岸山脈（原屬菲律賓海板塊）推擠中央山脈（歐亞大陸邊緣）</div>
+                            </div>
+                            <i class="fa-solid fa-mountain-city text-emerald-400"></i>
+                        </button>
+                    </div>
+
+                    <!-- Taiwan Key Facts Card -->
+                    <div class="p-3 rounded-xl bg-slate-900/95 border border-slate-800 text-xs space-y-2">
+                        <div class="font-bold text-amber-300 flex items-center gap-1.5">
+                            <i class="fa-solid fa-star"></i>
+                            <span>臺灣板塊必背考點：</span>
+                        </div>
+                        <ul class="space-y-1.5 text-slate-300">
+                            <li>• <strong class="text-white">花東縱谷：</strong>就是兩大板塊的交界線（縫合線）！縱谷以西（中央山脈、西部平原）屬<span class="text-amber-300">歐亞板塊</span>；縱谷以東（海岸山脈、綠島、蘭嶼）屬<span class="text-sky-300">菲律賓海板塊</span>。</li>
+                            <li>• <strong class="text-white">斷層型態：</strong>受強烈擠壓力影響，臺灣多為<strong class="text-rose-300">逆斷層</strong>（上盤相對向上移動）與褶皺構造。</li>
+                            <li>• <strong class="text-white">火山成因：</strong>北部大屯火山群、基隆山、龜山島，皆為隱沒帶熔融產生的<strong class="text-orange-300">安山岩質火山</strong>。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== MODULE 4: 會考隨堂挑戰賽 ==================== -->
+            <div id="panel-module4" class="module-panel hidden flex-col gap-3">
+                <div class="glass-panel p-4 rounded-2xl border-t-4 border-t-emerald-400">
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Module 04・隨堂挑戰賽</span>
+                            <h2 class="text-lg font-black text-white">國中會考高頻迷思診斷</h2>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[11px] text-slate-400 block">目前得分</span>
+                            <span id="quiz-panel-score" class="text-xl font-black text-amber-400 font-mono">0 / 100</span>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-slate-400 mb-3">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-400 mr-1"></i>點擊題目或作答時，左側 <strong>3D 實驗室會自動切換至對應地質模型</strong> 協助你立體解題！
+                    </p>
+
+                    <!-- Question Progress Pills -->
+                    <div class="flex items-center gap-1.5 mb-3" id="quiz-progress-bar">
+                        <!-- Generated by JS -->
+                    </div>
+
+                    <!-- Active Question Container -->
+                    <div id="quiz-question-card" class="p-3.5 rounded-xl bg-slate-900/95 border border-slate-700 space-y-3">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <!-- Quiz Navigation Buttons -->
+                    <div class="flex items-center justify-between mt-3">
+                        <button onclick="prevQuestion()" id="btn-prev-q" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition disabled:opacity-40">
+                            <i class="fa-solid fa-arrow-left mr-1"></i>上一題
+                        </button>
+                        <button onclick="resetQuiz()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-400 transition">
+                            <i class="fa-solid fa-rotate mr-1"></i>重新測驗
+                        </button>
+                        <button onclick="nextQuestion()" id="btn-next-q" class="px-3.5 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-xs font-bold text-white transition">
+                            下一題<i class="fa-solid fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto border-t border-slate-800/80 bg-slate-950 py-2.5 px-4 text-center text-xs text-slate-400">
+        <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div>
+                <span class="font-bold text-slate-300">《地殼的脈動：3D 板塊構造互動實驗室》</span>
+                <span class="mx-2 text-slate-600">|</span>
+                <span class="text-amber-400 font-bold">作者：大大教學</span>
+            </div>
+            <div class="text-[11px] text-slate-400">
+                適用：國中三年級自然科學（地球科學領域）｜ 3D WebGL 即時物理動態模擬
+            </div>
+        </div>
+    </footer>
+
+    <!-- Summary Comparison Modal -->
+    <div id="summary-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+        <div class="glass-panel max-w-4xl w-full rounded-2xl border border-slate-700 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-table-list text-cyan-400 text-lg"></i>
+                    <h3 class="text-base md:text-lg font-black text-white">國三會考必背：三大板塊交界類型總整理表</h3>
+                </div>
+                <button onclick="toggleSummaryModal(false)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-4 overflow-x-auto overflow-y-auto text-xs md:text-sm">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-900 text-slate-300 border-b border-slate-700">
+                            <th class="p-3 font-black">比較項目</th>
+                            <th class="p-3 font-black text-orange-400">張裂性板塊交界</th>
+                            <th class="p-3 font-black text-rose-400">聚合性板塊交界</th>
+                            <th class="p-3 font-black text-emerald-400">錯動性板塊交界</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800 text-slate-200">
+                        <tr>
+                            <td class="p-3 font-bold text-slate-400">軟流圈熱對流</td>
+                            <td class="p-3">熱對流<strong class="text-orange-300">上升</strong>（彼此遠離）</td>
+                            <td class="p-3">熱對流<strong class="text-rose-300">下降</strong>（彼此碰撞）</td>
+                            <td class="p-3">水平反向滑動</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-slate-400">受力類型與斷層</td>
+                            <td class="p-3">拉張力 → <strong class="text-orange-300">正斷層</strong></td>
+                            <td class="p-3">擠壓力 → <strong class="text-rose-300">逆斷層</strong>、褶皺</td>
+                            <td class="p-3">剪力 → <strong class="text-emerald-300">平移斷層（轉形斷層）</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-slate-400">地殼面積變化</td>
+                            <td class="p-3 text-emerald-300 font-bold">新海洋地殼生成（面積增加）</td>
+                            <td class="p-3 text-rose-300 font-bold">舊地殼隱沒消亡（面積減少）</td>
+                            <td class="p-3 text-slate-400">不生成也不消亡（面積不變）</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-slate-400">代表地形與實例</td>
+                            <td class="p-3">
+                                • 海洋：<strong class="text-white">中洋脊</strong>（大西洋中洋脊）<br>
+                                • 陸地：<strong class="text-white">裂谷</strong>（東非大裂谷）
+                            </td>
+                            <td class="p-3">
+                                • 海陸碰撞：<strong class="text-white">海溝、火山島弧</strong>（馬里亞納海溝、日本、臺灣）<br>
+                                • 陸陸碰撞：<strong class="text-white">高大山脈</strong>（喜馬拉雅山脈）
+                            </td>
+                            <td class="p-3">
+                                • <strong class="text-white">轉形斷層</strong>（美國聖安德列斯斷層、中洋脊間錯動帶）
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-slate-400">火山活動與岩石</td>
+                            <td class="p-3"><strong class="text-orange-300">有</strong>（玄武岩質岩漿平緩湧出）</td>
+                            <td class="p-3">
+                                • 海陸隱沒：<strong class="text-rose-300">有</strong>（安山岩質火山噴發）<br>
+                                • 陸陸碰撞：幾乎無火山
+                            </td>
+                            <td class="p-3"><strong class="text-emerald-300">無火山活動！</strong>（會考常考陷阱）</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-slate-400">地震震源深度</td>
+                            <td class="p-3">僅有<strong class="text-yellow-300">淺源地震</strong></td>
+                            <td class="p-3"><strong class="text-rose-300">淺、中、深源地震皆有</strong>（沿隱沒帶越深）</td>
+                            <td class="p-3">僅有<strong class="text-yellow-300">淺源地震</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-3 bg-slate-900/90 border-t border-slate-800 flex justify-end">
+                <button onclick="toggleSummaryModal(false)" class="px-4 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold">
+                    關閉整理表
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic & Three.js 3D Engine -->
+    <script>
+        // ============================================================================
+        // 1. EDUCATIONAL DATA & SCENE METADATA
+        // ============================================================================
+        const SCENE_INFO = {
+            lithosphere: {
+                badge: '基礎構造模型',
+                title: '岩石圈（板塊）vs. 軟流圈立體剖面',
+                subtitle: '板塊 = 地殼 + 上部地函頂部（厚度約 100 km）',
+                stress: '地殼均衡與熱對流帶動',
+                fault: '尚未發生邊界斷層',
+                landforms: '大陸地殼（高山/高原）與海洋地殼（深海平原）',
+                volcano: '軟流圈高溫具可塑性，提供岩漿與熱對流動力',
+                earthquake: '板塊內部地震較少，主要集中於板塊交界帶',
+                crustChange: '展示大陸地殼（厚、密度小）與海洋地殼（薄、密度大）差異',
+                examTip: `
+                    <p><strong class="text-cyan-300">【會考必考陷阱】</strong></p>
+                    <p>1. <strong>板塊 ≠ 地殼！</strong>板塊（岩石圈）包含「地殼」與「一部分上部地函」，平均厚度約 100 km。</p>
+                    <p>2. <strong>為什麼大陸地殼比海洋地殼高？</strong>大陸地殼主要由<strong>花崗岩</strong>組成（密度約 2.7 g/cm³，厚度 35~70 km）；海洋地殼由<strong>玄武岩</strong>組成（密度約 3.0 g/cm³，厚度僅 5~10 km）。</p>
+                `
+            },
+            divergent: {
+                badge: '張裂性板塊交界',
+                title: '中洋脊與海底擴張 3D 動態模擬',
+                subtitle: '軟流圈熱對流上升・拉張力作用・新海洋地殼生成',
+                stress: '拉張力（← → 兩側板塊彼此遠離）',
+                fault: '正斷層（上盤相對向下滑落）',
+                landforms: '中洋脊（如大西洋中洋脊）、大陸裂谷（如東非大裂谷）',
+                volcano: '玄武岩質火山活動（岩漿自裂谷湧出冷卻成新海洋地殼）',
+                earthquake: '淺源地震為主（震源深度 < 70 km）',
+                crustChange: '生成新地殼（距離中洋脊越遠，岩石年齡越老、沉積物越厚）',
+                examTip: `
+                    <p><strong class="text-orange-300">【中洋脊年齡與磁極條帶考點】</strong></p>
+                    <p>1. 在 3D 模型中觀察中洋脊兩側的條帶：<strong>越靠近中央裂谷，海洋地殼越年輕</strong>；越往兩側遠離，年齡越老！</p>
+                    <p>2. 此處受拉張力影響，多發育<strong>正斷層</strong>，且僅有<strong>淺源地震</strong>。</p>
+                `
+            },
+            convergent_oc: {
+                badge: '聚合性交界（海陸碰撞）',
+                title: '海溝、隱沒帶與火山島弧 3D 模型',
+                subtitle: '熱對流下降・擠壓力・海洋地殼隱沒至大陸地殼下',
+                stress: '擠壓力（→ ← 兩側板塊彼此碰撞）',
+                fault: '逆斷層與褶皺構造',
+                landforms: '海溝（最深處）、火山島弧或海岸山脈（如日本群島、安地斯山脈）',
+                volcano: '安山岩質火山爆發（隱沒板塊受熱部分熔融，岩漿上升噴發）',
+                earthquake: '淺、中、深源地震皆有（沿隱沒板塊傾斜分布，稱班尼奧夫帶）',
+                crustChange: '老海洋地殼在海溝處隱沒回地函消亡（地殼面積縮減）',
+                examTip: `
+                    <p><strong class="text-rose-300">【誰隱沒到誰下面？震源怎麼變？】</strong></p>
+                    <p>1. <strong>海洋地殼（玄武岩、密度大）</strong>必定向下隱沒到<strong>大陸地殼（花崗岩、密度小）</strong>下方！</p>
+                    <p>2. 觀察模型中的震源閃光（可開啟「剖面透視」）：從<strong>海溝往大陸（或火山島弧）方向，地震震源由淺源 → 中源 → 深源</strong>加深！</p>
+                `
+            },
+            convergent_cc: {
+                badge: '聚合性交界（陸陸碰撞）',
+                title: '大陸與大陸碰撞：高大褶皺山脈',
+                subtitle: '強烈擠壓力・兩者密度皆小不易隱沒・地殼劇烈隆起',
+                stress: '強烈擠壓力（→ ← 大陸地殼正面交鋒）',
+                fault: '大型逆斷層與劇烈褶皺構造',
+                landforms: '高聳褶皺山脈與高原（如印澳板塊撞擊歐亞板塊形成喜馬拉雅山脈）',
+                volcano: '無明顯火山噴發（因無海洋板塊深層隱沒熔融）',
+                earthquake: '淺源至中源強烈地震遍布造山帶',
+                crustChange: '地殼在垂直方向大幅加厚（可達 70 km 以上）',
+                examTip: `
+                    <p><strong class="text-purple-300">【為什麼喜馬拉雅山上有海洋生物化石？】</strong></p>
+                    <p>印澳板塊與歐亞板塊碰撞前，中間原本隔著古海洋；隨著海洋地殼完全隱沒，兩塊大陸地殼正面相撞，將原本海底的沉積岩層與化石<strong>強烈擠壓隆起推上世界屋脊</strong>！</p>
+                `
+            },
+            transform: {
+                badge: '錯動性板塊交界',
+                title: '轉形斷層（水平錯動）3D 模擬',
+                subtitle: '剪力作用・板塊水平反向滑動・地殼不生不滅',
+                stress: '剪力（⇅ 兩側板塊平行反向錯動）',
+                fault: '平移斷層 / 轉形斷層（如美國加州聖安德列斯斷層）',
+                landforms: '斷層線谷、錯移的河道或山脊（常切穿中洋脊）',
+                volcano: '【絕對無火山活動！】（無岩漿湧出也無隱沒熔融）',
+                earthquake: '極易發生劇烈的淺源地震',
+                crustChange: '地殼既不生成，也不隱沒消亡',
+                examTip: `
+                    <p><strong class="text-emerald-300">【會考秒殺關鍵：有地震、沒火山！】</strong></p>
+                    <p>錯動性交界因為沒有板塊張裂讓岩漿湧出，也沒有板塊隱沒產生局部熔融，因此<strong>只有淺源地震，完全沒有火山活動</strong>！看到「轉形斷層有火山爆發」請直接打叉。</p>
+                `
+            },
+            taiwan: {
+                badge: '臺灣板塊構造立體模型',
+                title: '歐亞板塊 vs. 菲律賓海板塊（花東縱谷縫合線）',
+                subtitle: '東北外海向北隱沒・花東縱谷弧陸碰撞造山',
+                stress: '聚合性擠壓力（菲律賓海板塊每年向西北推進 7~8 cm）',
+                fault: '逆斷層為主（如車籠埔斷層、池上斷層）與縱谷縫合線',
+                landforms: '中央山脈、海岸山脈、花東縱谷、琉球海溝、大屯火山群',
+                volcano: '大屯火山群、龜山島、綠島、蘭嶼（皆為安山岩質火山）',
+                earthquake: '全島淺源地震頻繁；東北外海具向北加深的隱沒帶深源地震',
+                crustChange: '臺灣島持續隆起長高，地殼受擠壓變形劇烈',
+                examTip: `
+                    <p><strong class="text-amber-300">【臺灣地科會考必考重點】</strong></p>
+                    <p>1. <strong>花東縱谷</strong>是歐亞板塊與菲律賓海板塊的交界！</p>
+                    <p>2. 臺灣東北外海：<strong>菲律賓海板塊向北隱沒到歐亞板塊下</strong>，形成琉球海溝與大屯火山群、龜山島。</p>
+                `
+            }
+        };
+
+        const QUIZ_QUESTIONS = [
+            {
+                id: 1,
+                scene: 'lithosphere',
+                question: '關於「板塊構造學說」中對「板塊」的定義，下列敘述何者最正確？',
+                options: [
+                    'A. 板塊就是指地球最外層的「大陸地殼」與「海洋地殼」',
+                    'B. 板塊是指「岩石圈」，包含地殼與上部地函最頂部，漂浮在軟流圈上',
+                    'C. 板塊是指高溫且具可塑性的「軟流圈」，能自己產生熱對流移動',
+                    'D. 大陸地殼密度比海洋地殼大，因此厚度也比較厚'
+                ],
+                correct: 1,
+                explanation: '【正解：B】會考核心觀念：「板塊 ＝ 岩石圈 ＝ 地殼 ＋ 上部地函頂部」（平均厚約 100 km），其下方為高溫可塑的「軟流圈」。另外，海洋地殼（玄武岩）密度約 3.0 g/cm³，大於大陸地殼（花崗岩，約 2.7 g/cm³）。'
+            },
+            {
+                id: 2,
+                scene: 'divergent',
+                question: '科學家在大西洋「中洋脊」兩側進行海底鑽探取樣，若比較距離中洋脊中央裂谷「較近處（甲）」與「較遠處（乙）」的海洋地殼性質，下列何者正確？',
+                options: [
+                    'A. 甲處的海洋地殼岩石年齡較老，上方的沉積物較厚',
+                    'B. 乙處為老海洋地殼向下隱沒進入海溝的地方',
+                    'C. 甲處有新的玄武岩質岩漿湧出冷卻，岩石年齡比乙處年輕',
+                    'D. 中洋脊屬於聚合性板塊交界，常伴隨深源地震'
+                ],
+                correct: 2,
+                explanation: '【正解：C】中洋脊屬於「張裂性交界」，軟流圈熱對流上升使玄武岩質岩漿自中央裂谷（甲處）湧出形成新海洋地殼，並向兩側擴張；因此越靠近中洋脊（甲）岩石年齡越年輕、沉積物越薄！'
+            },
+            {
+                id: 3,
+                scene: 'convergent_oc',
+                question: '當「海洋地殼」與「大陸地殼」在聚合性交界發生擠壓碰撞時，會產生下列何種地質現象？（請搭配左側 3D 海陸隱沒模型觀察）',
+                options: [
+                    'A. 密度較小的大陸地殼會向下隱沒到海洋地殼下方',
+                    'B. 交界處會形成深邃的「海溝」，且震源深度由海溝往陸地方向逐漸加深',
+                    'C. 隱沒帶上方會噴發流動性極佳的「玄武岩質」火山島弧',
+                    'D. 此處受到強烈的拉張力作用，斷層多屬於正斷層'
+                ],
+                correct: 1,
+                explanation: '【正解：B】海洋地殼（玄武岩質，密度大）會向下隱沒至大陸地殼下方，於交界處形成「海溝」，隱沒板塊摩擦產生由淺到深的地震帶（往內陸越深），且部分熔融上升形成「安山岩質」火山島弧。'
+            },
+            {
+                id: 4,
+                scene: 'transform',
+                question: '美國加州著名的「聖安德列斯斷層」屬於錯動性板塊交界（轉形斷層）。請問在該地區最【不可能】觀察到下列哪一種地質現象？',
+                options: [
+                    'A. 頻繁發生淺源地震',
+                    'B. 地表河道或圍欄沿斷層線發生水平錯移',
+                    'C. 岩石受到強烈的剪力作用而變形破裂',
+                    'D. 劇烈的火山噴發與新海洋地殼生成'
+                ],
+                correct: 3,
+                explanation: '【正解：D】錯動性板塊交界（轉形斷層）僅有板塊水平反向滑動，既無岩漿湧出也無板塊隱沒熔融，因此「只有淺源地震，絕對沒有火山活動」，地殼面積也不生不滅！'
+            },
+            {
+                id: 5,
+                scene: 'taiwan',
+                question: '關於臺灣的板塊構造環境，下列哪一位同學的報告內容最符合事實？',
+                options: [
+                    'A. 小明：臺灣位於張裂性板塊交界，所以中央山脈不斷裂開長高',
+                    'B. 小華：花東縱谷是歐亞板塊與菲律賓海板塊的交界線，臺灣斷層多為逆斷層',
+                    'C. 小美：臺灣東北外海的龜山島與大屯火山群，是由玄武岩漿自中洋脊湧出形成的',
+                    'D. 阿強：海岸山脈與中央山脈都位在歐亞板塊之上'
+                ],
+                correct: 1,
+                explanation: '【正解：B】臺灣位於歐亞板塊與菲律賓海板塊的「聚合性交界」，花東縱谷即為兩板塊縫合線（海岸山脈屬菲律賓海板塊、中央山脈屬歐亞板塊）。受擠壓力影響，臺灣多為「逆斷層」，北部大屯火山與龜山島則為隱沒作用形成的「安山岩質火山」。'
+            }
+        ];
+
+        // ============================================================================
+        // 2. APPLICATION STATE
+        // ============================================================================
+        let currentModule = 'module1';
+        let currentSceneKey = 'lithosphere';
+        let animSpeed = 1.2;
+        let isPaused = false;
+        let showLabels = true;
+        let isXRay = false;
+        let showQuakes = true;
+        let cycleProgress = 0; // 0.0 to 1.0 looping tectonic collision progression
+
+        // Quiz state
+        let currentQuizIndex = 0;
+        let userAnswers = new Array(QUIZ_QUESTIONS.length).fill(null);
+
+        // ============================================================================
+        // 3. THREE.JS ENGINE VARIABLES
+        // ============================================================================
+        let scene, camera, renderer, controls;
+        let sceneRootGroup;
+        let animatedObjects = []; // { mesh, update(dt, elapsed) }
+        let xrayMeshes = [];      // Meshes that become transparent in X-Ray mode
+        let quakeGroup;           // Group holding earthquake flash spheres
+        let activeLabels = [];    // { element, worldPos: THREE.Vector3 }
+        let clock = new THREE.Clock();
+
+        // ============================================================================
+        // 4. INITIALIZATION
+        // ============================================================================
+        window.onload = function () {
+            initThreeJS();
+            switchModule('module1');
+            loadScene('lithosphere');
+            renderQuizProgress();
+            renderQuizQuestion();
+            animate();
+        };
+
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+            const width = container.clientWidth || 800;
+            const height = container.clientHeight || 550;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x070b14);
+            scene.fog = new THREE.FogExp2(0x070b14, 0.008);
+
+            camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 1000);
+            camera.position.set(0, 18, 34);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.06;
+            controls.maxPolarAngle = Math.PI * 0.55;
+            controls.minDistance = 12;
+            controls.maxDistance = 65;
+            controls.target.set(0, 0, 0);
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xdbeafe, 0.65);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            dirLight.position.set(20, 35, 25);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.35);
+            rimLight.position.set(-25, 15, -20);
+            scene.add(rimLight);
+
+            // Glow from Asthenosphere below
+            const magmaLight = new THREE.PointLight(0xf97316, 1.4, 45);
+            magmaLight.position.set(0, -6, 0);
+            scene.add(magmaLight);
+
+            // Subtle reference grid under the geological block
+            const gridHelper = new THREE.GridHelper(60, 30, 0x1e293b, 0x0f172a);
+            gridHelper.position.y = -8.5;
+            scene.add(gridHelper);
+
+            sceneRootGroup = new THREE.Group();
+            scene.add(sceneRootGroup);
+
+            quakeGroup = new THREE.Group();
+            scene.add(quakeGroup);
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            if (!container || !renderer || !camera) return;
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        }
+
+        // ============================================================================
+        // 5. HELPER FUNCTIONS FOR 3D GEOLOGY BUILDING
+        // ============================================================================
+        function clearCurrentScene() {
+            while (sceneRootGroup.children.length > 0) {
+                const obj = sceneRootGroup.children[0];
+                sceneRootGroup.remove(obj);
+            }
+            while (quakeGroup.children.length > 0) {
+                quakeGroup.remove(quakeGroup.children[0]);
+            }
+            animatedObjects = [];
+            xrayMeshes = [];
+            activeLabels = [];
+            document.getElementById('labels-container').innerHTML = '';
+        }
+
+        function add3DLabel(title, subtitle, worldPosVec3, colorType = 'orange') {
+            const container = document.getElementById('labels-container');
+            const el = document.createElement('div');
+
+            const colorClasses = {
+                orange: 'border-orange-500/80 text-orange-300 bg-slate-900/92',
+                cyan: 'border-cyan-400/80 text-cyan-200 bg-slate-900/92',
+                rose: 'border-rose-500/80 text-rose-200 bg-slate-900/92',
+                amber: 'border-amber-400/80 text-amber-200 bg-slate-900/92',
+                emerald: 'border-emerald-400/80 text-emerald-200 bg-slate-900/92',
+                purple: 'border-purple-400/80 text-purple-200 bg-slate-900/92'
+            };
+            const dotColors = {
+                orange: '#f97316',
+                cyan: '#22d3ee',
+                rose: '#f43f5e',
+                amber: '#fbbf24',
+                emerald: '#34d399',
+                purple: '#c084fc'
+            };
+
+            el.className = `label-3d px-2.5 py-1 rounded-lg border shadow-xl ${colorClasses[colorType] || colorClasses.orange}`;
+            el.style.display = showLabels ? 'block' : 'none';
+            el.innerHTML = `
+                <div class="text-xs font-black tracking-wide">${title}</div>
+                ${subtitle ? `<div class="text-[10px] text-slate-300 font-normal">${subtitle}</div>` : ''}
+                <div class="label-pin" style="background:${dotColors[colorType] || '#f97316'}; color:${dotColors[colorType] || '#f97316'}"></div>
+            `;
+            container.appendChild(el);
+            activeLabels.push({ element: el, worldPos: worldPosVec3.clone() });
+        }
+
+        function update3DLabels() {
+            if (!showLabels) return;
+            const container = document.getElementById('canvas-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            activeLabels.forEach(item => {
+                const pos = item.worldPos.clone();
+                pos.project(camera);
+
+                // Hide if behind camera
+                if (pos.z > 1) {
+                    item.element.style.opacity = '0';
+                    return;
+                }
+                const x = (pos.x * 0.5 + 0.5) * width;
+                const y = (-(pos.y * 0.5) + 0.5) * height;
+
+                item.element.style.opacity = '1';
+                item.element.style.left = `${x}px`;
+                item.element.style.top = `${y}px`;
+            });
+        }
+
+        // Creates the glowing Asthenosphere base with animated convection currents
+        function createAsthenosphereBase(width = 24, depth = 14, convectionMode = 'divergent') {
+            const group = new THREE.Group();
+
+            // Main Asthenosphere block
+            const geo = new THREE.BoxGeometry(width, 4.5, depth);
+            const mat = new THREE.MeshStandardMaterial({
+                color: 0xb91c1c,
+                emissive: 0x7f1d1d,
+                emissiveIntensity: 0.7,
+                roughness: 0.6
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(0, -5.8, 0);
+            group.add(mesh);
+
+            // Glowing magma core layer at bottom
+            const coreGeo = new THREE.BoxGeometry(width + 0.1, 1.0, depth + 0.1);
+            const coreMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+            const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+            coreMesh.position.set(0, -7.6, 0);
+            group.add(coreMesh);
+
+            // Animated Convection Current Particles on the front cross-section (z = depth/2 + 0.25)
+            const frontZ = depth / 2 + 0.2;
+            const particleCount = 28;
+            const pGeo = new THREE.SphereGeometry(0.22, 10, 10);
+            const pMat = new THREE.MeshBasicMaterial({ color: 0xfde047 });
+
+            for (let i = 0; i < particleCount; i++) {
+                const p = new THREE.Mesh(pGeo, pMat);
+                const side = i % 2 === 0 ? -1 : 1; // Left or Right convection cell
+                const phase = (i / particleCount) * Math.PI * 2;
+                group.add(p);
+
+                animatedObjects.push({
+                    mesh: p,
+                    update: (dt, elapsed) => {
+                        const t = elapsed * 1.4 + phase;
+                        if (convectionMode === 'divergent') {
+                            // Up in center (x=0), outward at top (y=-4), down at edges
+                            const angle = side === -1 ? t : -t;
+                            const cx = side * 5.2;
+                            const cy = -5.7;
+                            p.position.set(cx + Math.cos(angle) * 3.8, cy + Math.sin(angle) * 1.4, frontZ);
+                        } else if (convectionMode === 'convergent') {
+                            // Inward at top, downward in center
+                            const angle = side === -1 ? -t : t;
+                            const cx = side * 5.2;
+                            const cy = -5.7;
+                            p.position.set(cx + Math.cos(angle) * 3.8, cy + Math.sin(angle) * 1.4, frontZ);
+                        } else {
+                            // Horizontal shear circulation
+                            const offset = ((elapsed * 2 + i) % 10) - 5;
+                            p.position.set(offset * 2.0, -5.5 + (i % 3 - 1) * 0.8, frontZ);
+                        }
+                    }
+                });
+            }
+
+            sceneRootGroup.add(group);
+            return group;
+        }
+
+        // Creates 3D Stress Force Arrows (Tension, Compression, or Shear)
+        function createForceArrow(fromVec, dirVec, length, colorHex) {
+            const arrowGroup = new THREE.Group();
+            const shaftGeo = new THREE.CylinderGeometry(0.18, 0.18, length - 0.9, 12);
+            const headGeo = new THREE.ConeGeometry(0.48, 1.0, 14);
+            const mat = new THREE.MeshBasicMaterial({ color: colorHex });
+
+            const shaft = new THREE.Mesh(shaftGeo, mat);
+            shaft.position.y = (length - 0.9) / 2;
+            const head = new THREE.Mesh(headGeo, mat);
+            head.position.y = length - 0.5;
+
+            arrowGroup.add(shaft, head);
+            arrowGroup.position.copy(fromVec);
+
+            const quaternion = new THREE.Quaternion();
+            quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dirVec.clone().normalize());
+            arrowGroup.setRotationFromQuaternion(quaternion);
+
+            sceneRootGroup.add(arrowGroup);
+            return arrowGroup;
+        }
+
+        // Creates flashing earthquake hypocenters (Yellow = Shallow, Orange = Intermediate, Red = Deep)
+        function createEarthquakeFlashes(quakeList) {
+            quakeList.forEach((q, idx) => {
+                const colorMap = {
+                    shallow: 0xfde047,      // Yellow (<70km)
+                    intermediate: 0xf97316, // Orange (70-300km)
+                    deep: 0xdc2626          // Red (>300km)
+                };
+                const col = colorMap[q.depthType] || 0xfde047;
+
+                const sphereGeo = new THREE.SphereGeometry(0.32, 12, 12);
+                const sphereMat = new THREE.MeshBasicMaterial({ color: col });
+                const core = new THREE.Mesh(sphereGeo, sphereMat);
+                core.position.copy(q.pos);
+
+                // Expanding shockwave ring
+                const ringGeo = new THREE.RingGeometry(0.35, 0.55, 20);
+                const ringMat = new THREE.MeshBasicMaterial({
+                    color: col,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const ring = new THREE.Mesh(ringGeo, ringMat);
+                ring.position.copy(q.pos);
+
+                quakeGroup.add(core, ring);
+
+                animatedObjects.push({
+                    mesh: ring,
+                    update: (dt, elapsed) => {
+                        const cycle = (elapsed * 1.8 + idx * 0.7) % 2.0;
+                        const scale = 0.8 + cycle * 1.8;
+                        ring.scale.set(scale, scale, scale);
+                        ring.lookAt(camera.position);
+                        ringMat.opacity = Math.max(0, 1 - cycle / 2.0);
+                        core.scale.setScalar(0.85 + Math.sin(elapsed * 6 + idx) * 0.25);
+                    }
+                });
+            });
+            quakeGroup.visible = showQuakes;
+        }
+
+        // ============================================================================
+        // 6. SCENE BUILDERS FOR ALL 6 GEOLOGICAL MODELS
+        // ============================================================================
+
+        // SCENE 1: 岩石圈 vs 軟流圈 & 大陸地殼 vs 海洋地殼
+        function buildSceneLithosphere() {
+            createAsthenosphereBase(24, 14, 'divergent');
+
+            const lithoGroup = new THREE.Group();
+            sceneRootGroup.add(lithoGroup);
+
+            // Upper Mantle Top (Part of Lithosphere / Plate)
+            const mantleTopGeo = new THREE.BoxGeometry(24, 2.4, 14);
+            const mantleTopMat = new THREE.MeshStandardMaterial({
+                color: 0x64748b,
+                roughness: 0.7,
+                transparent: true,
+                opacity: isXRay ? 0.35 : 1.0
+            });
+            const mantleTop = new THREE.Mesh(mantleTopGeo, mantleTopMat);
+            mantleTop.position.set(0, -2.3, 0);
+            lithoGroup.add(mantleTop);
+            xrayMeshes.push(mantleTop);
+
+            // Left Half: Continental Crust (Thicker 35-70km, Granite, Lower Density)
+            const contCrustGeo = new THREE.BoxGeometry(11.8, 3.6, 14);
+            const contCrustMat = new THREE.MeshStandardMaterial({
+                color: 0xd97706, // Warm granitic brown-amber
+                roughness: 0.75,
+                transparent: true,
+                opacity: isXRay ? 0.35 : 1.0
+            });
+            const contCrust = new THREE.Mesh(contCrustGeo, contCrustMat);
+            contCrust.position.set(-6.1, 0.7, 0);
+            lithoGroup.add(contCrust);
+            xrayMeshes.push(contCrust);
+
+            // Green continent top + mountain peaks on left
+            const landTopGeo = new THREE.BoxGeometry(11.8, 0.4, 14);
+            const landTopMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.8 });
+            const landTop = new THREE.Mesh(landTopGeo, landTopMat);
+            landTop.position.set(-6.1, 2.7, 0);
+            lithoGroup.add(landTop);
+
+            for (let i = 0; i < 4; i++) {
+                const mGeo = new THREE.ConeGeometry(1.8 - i * 0.2, 2.5, 6);
+                const mMat = new THREE.MeshStandardMaterial({ color: 0x78716c, flatShading: true });
+                const m = new THREE.Mesh(mGeo, mMat);
+                m.position.set(-8.5 + i * 1.8, 3.9, -2 + (i % 2) * 3.5);
+                lithoGroup.add(m);
+            }
+
+            // Right Half: Oceanic Crust (Thinner 5-10km, Basalt, Higher Density)
+            const oceanCrustGeo = new THREE.BoxGeometry(12.2, 1.3, 14);
+            const oceanCrustMat = new THREE.MeshStandardMaterial({
+                color: 0x1e293b, // Dark basaltic slate
+                roughness: 0.8,
+                transparent: true,
+                opacity: isXRay ? 0.35 : 1.0
+            });
+            const oceanCrust = new THREE.Mesh(oceanCrustGeo, oceanCrustMat);
+            oceanCrust.position.set(5.9, -0.45, 0);
+            lithoGroup.add(oceanCrust);
+            xrayMeshes.push(oceanCrust);
+
+            // Ocean Water Layer above Oceanic Crust
+            const waterGeo = new THREE.BoxGeometry(12.2, 2.3, 14);
+            const waterMat = new THREE.MeshStandardMaterial({
+                color: 0x0284c7,
+                transparent: true,
+                opacity: 0.55,
+                roughness: 0.2
+            });
+            const water = new THREE.Mesh(waterGeo, waterMat);
+            water.position.set(5.9, 1.35, 0);
+            lithoGroup.add(water);
+
+            // Visual Bracket on Front Face showing Lithosphere = Crust + Upper Mantle Top
+            const bracketGeo = new THREE.BoxGeometry(0.35, 5.8, 0.35);
+            const bracketMat = new THREE.MeshBasicMaterial({ color: 0x22d3ee });
+            const bracket = new THREE.Mesh(bracketGeo, bracketMat);
+            bracket.position.set(-12.2, -0.6, 7.2);
+            lithoGroup.add(bracket);
+
+            // Gentle isostatic floating bobbing animation on asthenosphere
+            animatedObjects.push({
+                mesh: lithoGroup,
+                update: (dt, elapsed, prog) => {
+                    lithoGroup.position.y = Math.sin(elapsed * 2.2) * 0.18;
+                }
+            });
+
+            // Labels
+            add3DLabel('大陸地殼 (花崗岩質)', '厚度較厚 35~70km・密度小 (~2.7)', new THREE.Vector3(-6.2, 4.8, 0), 'amber');
+            add3DLabel('海洋地殼 (玄武岩質)', '厚度較薄 5~10km・密度大 (~3.0)', new THREE.Vector3(6.0, 0.2, 3.5), 'cyan');
+            add3DLabel('上部地函頂部', '與地殼共同組成堅硬「岩石圈」', new THREE.Vector3(0, -2.3, 7.2), 'cyan');
+            add3DLabel('【板塊 = 岩石圈】', '地殼 ＋ 上部地函頂部 (~100km)', new THREE.Vector3(-12.2, 1.5, 7.2), 'emerald');
+            add3DLabel('軟流圈 (Asthenosphere)', '高溫可塑・熱對流帶動上方板塊', new THREE.Vector3(0, -5.8, 7.2), 'orange');
+        }
+
+        // SCENE 2: 張裂性板塊交界 (Divergent - Mid-Ocean Ridge)
+        function buildSceneDivergent() {
+            createAsthenosphereBase(24, 14, 'divergent');
+
+            // Left & Right Diverging Oceanic Lithosphere Plates with pronounced outward motion
+            const createDivergentPlate = (side) => {
+                const pGroup = new THREE.Group();
+                // Upper Mantle Top
+                const mGeo = new THREE.BoxGeometry(9.5, 2.2, 14);
+                const mMat = new THREE.MeshStandardMaterial({
+                    color: 0x475569,
+                    transparent: true,
+                    opacity: isXRay ? 0.35 : 1.0
+                });
+                const mMesh = new THREE.Mesh(mGeo, mMat);
+                mMesh.position.set(side * 5.2, -2.2, 0);
+                pGroup.add(mMesh);
+                xrayMeshes.push(mMesh);
+
+                // Basaltic Oceanic Crust
+                const cGeo = new THREE.BoxGeometry(9.5, 1.2, 14);
+                const cMat = new THREE.MeshStandardMaterial({
+                    color: 0x1e293b,
+                    transparent: true,
+                    opacity: isXRay ? 0.35 : 1.0
+                });
+                const cMesh = new THREE.Mesh(cGeo, cMat);
+                cMesh.position.set(side * 5.2, -0.5, 0);
+                pGroup.add(cMesh);
+                xrayMeshes.push(cMesh);
+
+                // Magnetic polarity / crustal age stripes on top & front of seafloor
+                const stripeColors = [0xf97316, 0x38bdf8, 0xfbbf24, 0x818cf8];
+                for (let s = 0; s < 4; s++) {
+                    const sGeo = new THREE.BoxGeometry(1.4, 1.28, 14.15);
+                    const sMat = new THREE.MeshBasicMaterial({ color: stripeColors[s] });
+                    const sMesh = new THREE.Mesh(sGeo, sMat);
+                    sMesh.position.set(side * (1.5 + s * 2.1), -0.45, 0);
+                    pGroup.add(sMesh);
+                }
+
+                // Force Arrow attached to moving plate
+                const arrowGroup = createForceArrow(
+                    new THREE.Vector3(side * 3.0, 3.3, 0),
+                    new THREE.Vector3(side, 0, 0),
+                    4.2,
+                    0xf97316
+                );
+                sceneRootGroup.remove(arrowGroup);
+                pGroup.add(arrowGroup);
+
+                sceneRootGroup.add(pGroup);
+
+                // Distinct outward spreading displacement (up to 3.2 units each side!)
+                animatedObjects.push({
+                    mesh: pGroup,
+                    update: (dt, elapsed, prog) => {
+                        pGroup.position.x = side * (prog * 3.2);
+                    }
+                });
+            };
+
+            createDivergentPlate(-1);
+            createDivergentPlate(1);
+
+            // Newly forming crust in center gap as plates pull apart
+            const newCrustGeo = new THREE.BoxGeometry(6.4, 3.2, 13.9);
+            const newCrustMat = new THREE.MeshStandardMaterial({
+                color: 0x9a3412,
+                emissive: 0xea580c,
+                emissiveIntensity: 0.45
+            });
+            const newCrust = new THREE.Mesh(newCrustGeo, newCrustMat);
+            newCrust.position.set(0, -1.5, 0);
+            sceneRootGroup.add(newCrust);
+
+            // Central Mid-Ocean Ridge Elevated Rift Slopes & Magma Dyke
+            const ridgeGeo = new THREE.CylinderGeometry(0.6, 2.8, 3.8, 16);
+            const ridgeMat = new THREE.MeshStandardMaterial({
+                color: 0xdc2626,
+                emissive: 0xea580c,
+                emissiveIntensity: 0.9
+            });
+            const ridge = new THREE.Mesh(ridgeGeo, ridgeMat);
+            ridge.position.set(0, -2.0, 0);
+            ridge.scale.set(1, 1, 3.7);
+            sceneRootGroup.add(ridge);
+
+            // Rising Magma Particles along the central rift valley
+            for (let i = 0; i < 20; i++) {
+                const mGeo = new THREE.SphereGeometry(0.26, 8, 8);
+                const mMat = new THREE.MeshBasicMaterial({ color: 0xfde047 });
+                const m = new THREE.Mesh(mGeo, mMat);
+                const zPos = -5.5 + (i / 20) * 11;
+                sceneRootGroup.add(m);
+                animatedObjects.push({
+                    mesh: m,
+                    update: (dt, elapsed) => {
+                        const progress = (elapsed * 1.4 + i * 0.25) % 1.0;
+                        m.position.set(Math.sin(i + elapsed * 3) * 0.35, -4.5 + progress * 5.2, zPos);
+                        m.scale.setScalar(1.2 - progress * 0.5);
+                    }
+                });
+            }
+
+            // Semi-transparent Ocean Water
+            const waterGeo = new THREE.BoxGeometry(24, 2.6, 14);
+            const waterMat = new THREE.MeshStandardMaterial({
+                color: 0x0369a1,
+                transparent: true,
+                opacity: 0.32
+            });
+            const water = new THREE.Mesh(waterGeo, waterMat);
+            water.position.set(0, 1.5, 0);
+            sceneRootGroup.add(water);
+
+            // Shallow earthquakes only along the central rift
+            createEarthquakeFlashes([
+                { pos: new THREE.Vector3(0, 0.2, 4.5), depthType: 'shallow' },
+                { pos: new THREE.Vector3(-0.6, -0.4, 1.5), depthType: 'shallow' },
+                { pos: new THREE.Vector3(0.5, -0.2, -2.0), depthType: 'shallow' },
+                { pos: new THREE.Vector3(0, 0.1, -5.0), depthType: 'shallow' }
+            ]);
+
+            // Labels
+            add3DLabel('中洋脊 (中央裂谷)', '玄武岩質岩漿湧出生成新海洋地殼', new THREE.Vector3(0, 1.6, 0), 'orange');
+            add3DLabel('拉張力作用 (←)', '板塊明顯向兩側張裂遠離', new THREE.Vector3(-6.5, 3.8, 0), 'amber');
+            add3DLabel('拉張力作用 (→)', '離中洋脊越遠，地殼年齡越老', new THREE.Vector3(6.5, 3.8, 0), 'amber');
+            add3DLabel('軟流圈熱對流上升', '帶動上方岩石圈張裂並形成正斷層', new THREE.Vector3(0, -5.2, 7.2), 'orange');
+        }
+
+        // SCENE 3: 聚合性板塊交界 - 海洋 vs 大陸 (Subduction, Trench, Volcanic Arc)
+        // ENHANCED: Both plates physically move toward each other + conveyor-belt subducting markers & seamounts plunging into mantle!
+        function buildSceneConvergentOC() {
+            createAsthenosphereBase(24, 14, 'convergent');
+
+            const slabAngle = -Math.PI / 5.2; // ~ -34.6 degrees subduction dip
+            const cosA = Math.cos(slabAngle);
+            const sinA = Math.sin(slabAngle);
+
+            // 1. LEFT PLATE GROUP: Moving Oceanic Plate (Translates rightward toward trench!)
+            const oceanPlateGroup = new THREE.Group();
+            sceneRootGroup.add(oceanPlateGroup);
+
+            // Oceanic Lithospheric Mantle (Lower layer)
+            const ocMantleGeo = new THREE.BoxGeometry(12.0, 1.8, 14);
+            const ocMantleMat = new THREE.MeshStandardMaterial({
+                color: 0x334155,
+                transparent: true,
+                opacity: isXRay ? 0.38 : 1.0
+            });
+            const ocMantle = new THREE.Mesh(ocMantleGeo, ocMantleMat);
+            ocMantle.position.set(-7.2, -2.1, 0);
+            oceanPlateGroup.add(ocMantle);
+            xrayMeshes.push(ocMantle);
+
+            // Oceanic Basaltic Crust (Upper dark layer)
+            const ocCrustGeo = new THREE.BoxGeometry(12.0, 1.1, 14);
+            const ocCrustMat = new THREE.MeshStandardMaterial({
+                color: 0x0f172a,
+                transparent: true,
+                opacity: isXRay ? 0.38 : 1.0
+            });
+            const ocCrust = new THREE.Mesh(ocCrustGeo, ocCrustMat);
+            ocCrust.position.set(-7.2, -0.65, 0);
+            oceanPlateGroup.add(ocCrust);
+            xrayMeshes.push(ocCrust);
+
+            // Downgoing Subducting Slab (Angled at -34.6 degrees into the Asthenosphere)
+            const slabGroup = new THREE.Group();
+            slabGroup.position.set(-1.3, -1.4, 0);
+            slabGroup.rotation.z = slabAngle;
+
+            const slabMantleGeo = new THREE.BoxGeometry(12.5, 1.8, 13.8);
+            const slabMantle = new THREE.Mesh(slabMantleGeo, ocMantleMat);
+            slabMantle.position.set(5.2, -0.45, 0);
+            slabGroup.add(slabMantle);
+            xrayMeshes.push(slabMantle);
+
+            const slabCrustGeo = new THREE.BoxGeometry(12.5, 1.0, 13.8);
+            const slabCrust = new THREE.Mesh(slabCrustGeo, ocCrustMat);
+            slabCrust.position.set(5.2, 0.85, 0);
+            slabGroup.add(slabCrust);
+            xrayMeshes.push(slabCrust);
+
+            oceanPlateGroup.add(slabGroup);
+
+            // Force Arrow attached to moving Oceanic Plate
+            const leftArrow = createForceArrow(new THREE.Vector3(-9.5, 3.0, 0), new THREE.Vector3(1, 0, 0), 4.5, 0xf43f5e);
+            sceneRootGroup.remove(leftArrow);
+            oceanPlateGroup.add(leftArrow);
+
+            // 2. CONVEYOR-BELT SUBDUCTION MARKERS (Stripes + Seamounts that visibly travel right -> bend at trench -> plunge deep into mantle!)
+            const numMarkers = 9;
+            const totalPathLen = 21.0; // 10.5 units horizontal + 10.5 units down the subducting slab
+            const horizLen = 10.5;
+
+            for (let i = 0; i < numMarkers; i++) {
+                const markerItem = new THREE.Group();
+
+                // Bright stratum band visible on top seafloor AND front/back cross-sections
+                const bandGeo = new THREE.BoxGeometry(0.65, 1.25, 14.25);
+                const bandMat = new THREE.MeshBasicMaterial({
+                    color: i % 2 === 0 ? 0x38bdf8 : 0xfbbf24
+                });
+                const band = new THREE.Mesh(bandGeo, bandMat);
+                markerItem.add(band);
+
+                // Seamount (海底火山/海山) on top of the oceanic crust
+                const smGeo = new THREE.ConeGeometry(0.65, 1.1, 8);
+                const smMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, flatShading: true });
+                const seamount = new THREE.Mesh(smGeo, smMat);
+                seamount.position.set(0, 1.05, (i % 3 - 1) * 3.2);
+                markerItem.add(seamount);
+
+                oceanPlateGroup.add(markerItem);
+
+                animatedObjects.push({
+                    mesh: markerItem,
+                    update: (dt, elapsed, prog) => {
+                        // Continuous movement along the oceanic plate & down the subduction zone
+                        const dist = ((prog * 14.0 + (i / numMarkers) * totalPathLen) % totalPathLen);
+                        if (dist < horizLen) {
+                            // Moving horizontally from left (-11.8) toward the Trench (-1.3)
+                            markerItem.position.set(-11.8 + dist, -0.58, 0);
+                            markerItem.rotation.z = 0;
+                        } else {
+                            // Bending at the Trench (-1.3) and plunging diagonally down the slab!
+                            const subDist = dist - horizLen;
+                            markerItem.position.set(
+                                -1.3 + subDist * cosA,
+                                -0.58 + subDist * sinA,
+                                0
+                            );
+                            markerItem.rotation.z = slabAngle;
+                        }
+                    }
+                });
+            }
+
+            // 3. RIGHT PLATE GROUP: Overriding Continental Plate (Moves leftward to collide & compress!)
+            const contPlateGroup = new THREE.Group();
+            sceneRootGroup.add(contPlateGroup);
+
+            // Continental Lithosphere Block
+            const contGeo = new THREE.BoxGeometry(12.5, 4.4, 14);
+            const contMat = new THREE.MeshStandardMaterial({
+                color: 0xb45309,
+                transparent: true,
+                opacity: isXRay ? 0.32 : 1.0
+            });
+            const contMesh = new THREE.Mesh(contGeo, contMat);
+            contMesh.position.set(5.4, -0.4, 0);
+            contPlateGroup.add(contMesh);
+            xrayMeshes.push(contMesh);
+
+            // Embedded rock strata lines on front cross-section of Continental Plate so its leftward motion is super clear
+            for (let k = 0; k < 4; k++) {
+                const stratumGeo = new THREE.BoxGeometry(0.5, 4.2, 14.18);
+                const stratumMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+                const stratum = new THREE.Mesh(stratumGeo, stratumMat);
+                stratum.position.set(1.5 + k * 2.6, -0.4, 0);
+                contPlateGroup.add(stratum);
+            }
+
+            // Green Top on Continental Plate
+            const topGeo = new THREE.BoxGeometry(12.5, 0.4, 14);
+            const topMat = new THREE.MeshStandardMaterial({ color: 0x15803d });
+            const topMesh = new THREE.Mesh(topGeo, topMat);
+            topMesh.position.set(5.4, 2.0, 0);
+            contPlateGroup.add(topMesh);
+
+            // Accretionary Wedge & Coastal Folded Uplift (增積岩體與海岸造山帶 - visibly compresses and grows as collision progresses!)
+            const wedgeGroup = new THREE.Group();
+            wedgeGroup.position.set(0.2, 2.0, 0);
+            for (let z = -5; z <= 5; z += 2.5) {
+                const wGeo = new THREE.ConeGeometry(1.3, 2.2, 6);
+                const wMat = new THREE.MeshStandardMaterial({ color: 0x65a30d, flatShading: true });
+                const wMesh = new THREE.Mesh(wGeo, wMat);
+                wMesh.position.set(0, 0.8, z);
+                wedgeGroup.add(wMesh);
+            }
+            contPlateGroup.add(wedgeGroup);
+
+            // Andesitic Volcanic Arc on Continental Plate + Rising Magma Plumes & Eruptions
+            const volcanoGroup = new THREE.Group();
+            const volcanoPositions = [-3.8, 0, 3.8];
+            volcanoPositions.forEach((zPos, i) => {
+                // Volcano Cone
+                const vGeo = new THREE.ConeGeometry(1.7, 2.9, 12);
+                const vMat = new THREE.MeshStandardMaterial({ color: 0x57534e, flatShading: true });
+                const vMesh = new THREE.Mesh(vGeo, vMat);
+                vMesh.position.set(4.2, 3.4, zPos);
+                volcanoGroup.add(vMesh);
+
+                // Glowing crater
+                const cGeo = new THREE.SphereGeometry(0.42, 10, 10);
+                const cMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+                const crater = new THREE.Mesh(cGeo, cMat);
+                crater.position.set(4.2, 4.8, zPos);
+                volcanoGroup.add(crater);
+
+                // Rising partial-melting magma blobs from subducting slab up to volcano
+                for (let b = 0; b < 3; b++) {
+                    const dropGeo = new THREE.SphereGeometry(0.32, 8, 8);
+                    const dropMat = new THREE.MeshBasicMaterial({ color: 0xfde047 });
+                    const drop = new THREE.Mesh(dropGeo, dropMat);
+                    contPlateGroup.add(drop);
+
+                    animatedObjects.push({
+                        mesh: drop,
+                        update: (dt, elapsed, prog) => {
+                            const p = (elapsed * 0.85 + i * 0.25 + b * 0.33) % 1.0;
+                            // Ascend from melting zone (-4.2) up to volcano crater (+5.2)
+                            drop.position.set(4.2 + Math.sin(p * 8 + i) * 0.2, -4.2 + p * 9.5, zPos);
+                            drop.scale.setScalar(0.8 + Math.sin(p * Math.PI) * 0.6);
+                        }
+                    });
+                }
+            });
+            contPlateGroup.add(volcanoGroup);
+
+            // Right Force Arrow attached to moving Continental Plate
+            const rightArrow = createForceArrow(new THREE.Vector3(10.2, 3.8, 0), new THREE.Vector3(-1, 0, 0), 4.5, 0xf43f5e);
+            sceneRootGroup.remove(rightArrow);
+            contPlateGroup.add(rightArrow);
+
+            // MACRO PLATE COLLISION TRANSLATION ANIMATION (Left plate moves right, Right plate moves left, Wedge & Volcanoes uplift!)
+            animatedObjects.push({
+                mesh: oceanPlateGroup,
+                update: (dt, elapsed, prog) => {
+                    // Left oceanic plate approaches from x = -2.2 to x = +0.8 as collision progresses
+                    oceanPlateGroup.position.x = -2.2 + prog * 3.0;
+                    // Right continental plate approaches from x = +2.2 to x = -0.4
+                    contPlateGroup.position.x = 2.2 - prog * 2.6;
+                    // Accretionary wedge & coastal range uplift as plates squeeze together
+                    const squeeze = 0.5 + prog * 0.85;
+                    wedgeGroup.scale.set(1.0 - prog * 0.2, squeeze, 1.0);
+                    volcanoGroup.scale.y = 0.85 + prog * 0.3;
+                }
+            });
+
+            // Semi-transparent Ocean Water on Left (kept subtle so seafloor motion is crystal clear)
+            const waterGeo = new THREE.BoxGeometry(11.5, 1.8, 14);
+            const waterMat = new THREE.MeshStandardMaterial({
+                color: 0x0284c7,
+                transparent: true,
+                opacity: 0.28
+            });
+            const waterMesh = new THREE.Mesh(waterGeo, waterMat);
+            waterMesh.position.set(-6.5, 0.9, 0);
+            sceneRootGroup.add(waterMesh);
+
+            // Benioff Zone Earthquakes: Shallow (near trench) -> Intermediate -> Deep (under continent)
+            createEarthquakeFlashes([
+                { pos: new THREE.Vector3(-0.8, -0.8, 7.1), depthType: 'shallow' },
+                { pos: new THREE.Vector3(-0.2, -1.2, -2.0), depthType: 'shallow' },
+                { pos: new THREE.Vector3(2.0, -2.6, 7.1), depthType: 'intermediate' },
+                { pos: new THREE.Vector3(2.8, -3.2, 0), depthType: 'intermediate' },
+                { pos: new THREE.Vector3(4.8, -4.8, 7.1), depthType: 'deep' },
+                { pos: new THREE.Vector3(5.5, -5.2, -3.0), depthType: 'deep' }
+            ]);
+
+            // Labels
+            add3DLabel('海溝 (Ocean Trench)', '海洋板塊向下隱沒處・地形最深', new THREE.Vector3(-0.6, 1.5, 2.0), 'cyan');
+            add3DLabel('火山島弧 / 海岸山脈', '隱沒板塊熔融形成「安山岩質火山」', new THREE.Vector3(4.5, 5.5, 0), 'rose');
+            add3DLabel('海洋地殼 (向右移動隱沒 →)', '玄武岩質密度大 (~3.0)・往大陸下方鑽', new THREE.Vector3(-7.0, 0.5, 5.0), 'cyan');
+            add3DLabel('班尼奧夫地震帶', '震源由海溝往內陸：淺源→中源→深源', new THREE.Vector3(3.2, -3.2, 7.2), 'amber');
+        }
+
+        // SCENE 4: 聚合性板塊交界 - 大陸 vs 大陸 (Continental Collision & Fold Mountains)
+        // ENHANCED: Both continental plates visibly approach from separated positions, crash head-on, and thrust up towering fold mountains!
+        function buildSceneConvergentCC() {
+            createAsthenosphereBase(24, 14, 'convergent');
+
+            const createCollidingContinent = (side) => {
+                const cGroup = new THREE.Group();
+                const geo = new THREE.BoxGeometry(10.5, 4.4, 14);
+                const mat = new THREE.MeshStandardMaterial({
+                    color: side === -1 ? 0xd97706 : 0xb45309,
+                    transparent: true,
+                    opacity: isXRay ? 0.35 : 1.0
+                });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(side * 5.2, -0.5, 0);
+                cGroup.add(mesh);
+                xrayMeshes.push(mesh);
+
+                // Green surface layer
+                const topGeo = new THREE.BoxGeometry(10.5, 0.35, 14);
+                const topMat = new THREE.MeshStandardMaterial({ color: 0x15803d });
+                const topMesh = new THREE.Mesh(topGeo, topMat);
+                topMesh.position.set(side * 5.2, 1.85, 0);
+                cGroup.add(topMesh);
+
+                // High-contrast vertical rock strata markers on front face so horizontal collision movement is unmistakable
+                for (let s = 1; s <= 3; s++) {
+                    const stGeo = new THREE.BoxGeometry(0.45, 4.3, 14.2);
+                    const stMat = new THREE.MeshBasicMaterial({ color: side === -1 ? 0xfde047 : 0xfdba74 });
+                    const stMesh = new THREE.Mesh(stGeo, stMat);
+                    stMesh.position.set(side * (2.2 * s + 1.0), -0.5, 0);
+                    cGroup.add(stMesh);
+                }
+
+                // Force arrow attached to plate
+                const arrow = createForceArrow(
+                    new THREE.Vector3(side * 8.5, 3.2, 0),
+                    new THREE.Vector3(-side, 0, 0),
+                    4.5,
+                    0xc084fc
+                );
+                sceneRootGroup.remove(arrow);
+                cGroup.add(arrow);
+
+                sceneRootGroup.add(cGroup);
+                return cGroup;
+            };
+
+            const leftCont = createCollidingContinent(-1);
+            const rightCont = createCollidingContinent(1);
+
+            // Central Thickened Crustal Root & High Folded Mountain Belt (Himalayas style)
+            const mountainGroup = new THREE.Group();
+            for (let i = -2; i <= 2; i++) {
+                for (let j = -1; j <= 1; j++) {
+                    const height = 4.8 - Math.abs(j) * 1.1 + (i % 2) * 0.6;
+                    const peakGeo = new THREE.ConeGeometry(2.3, height, 6);
+                    const peakMat = new THREE.MeshStandardMaterial({
+                        color: j === 0 ? 0xf8fafc : 0x78716c, // Snow-capped central peaks
+                        flatShading: true
+                    });
+                    const peak = new THREE.Mesh(peakGeo, peakMat);
+                    peak.position.set(j * 1.6, 1.5 + height / 2, i * 2.5);
+                    mountainGroup.add(peak);
+                }
+            }
+
+            // Deep Crustal Root (山根向下加厚)
+            const rootGeo = new THREE.ConeGeometry(3.8, 3.5, 8);
+            const rootMat = new THREE.MeshStandardMaterial({ color: 0x92400e });
+            const rootMesh = new THREE.Mesh(rootGeo, rootMat);
+            rootMesh.rotation.z = Math.PI;
+            rootMesh.position.set(0, -2.5, 0);
+            mountainGroup.add(rootMesh);
+
+            sceneRootGroup.add(mountainGroup);
+
+            // Dramatic Continent-Continent Collision & Orogeny Animation
+            animatedObjects.push({
+                mesh: mountainGroup,
+                update: (dt, elapsed, prog) => {
+                    // Plates start separated by 2.8 units each side and crash inward toward x = 0!
+                    const shift = (1.0 - prog) * 2.8;
+                    leftCont.position.x = -shift;
+                    rightCont.position.x = shift;
+
+                    // As plates collide and squeeze, the fold mountains dramatically rise from 0.25x to 1.35x height!
+                    const uplift = 0.25 + prog * 1.1;
+                    mountainGroup.scale.set(1.15 - prog * 0.3, uplift, 1.0);
+                }
+            });
+
+            // Shallow & Intermediate Earthquakes in thickened collision zone
+            createEarthquakeFlashes([
+                { pos: new THREE.Vector3(-1.5, 0.8, 7.1), depthType: 'shallow' },
+                { pos: new THREE.Vector3(1.2, 0.5, 3.0), depthType: 'shallow' },
+                { pos: new THREE.Vector3(0, -1.8, 7.1), depthType: 'intermediate' },
+                { pos: new THREE.Vector3(-0.8, -2.2, -3.5), depthType: 'intermediate' }
+            ]);
+
+            // Labels
+            add3DLabel('高大褶皺山脈 (如喜馬拉雅山)', '兩大陸碰撞擠壓，山脈隨碰撞持續隆起長高', new THREE.Vector3(0, 6.4, 0), 'purple');
+            add3DLabel('逆斷層與褶皺構造', '擠壓力使岩層彎曲變形並向下形成深厚山根', new THREE.Vector3(0, 0.8, 7.2), 'amber');
+            add3DLabel('大陸地殼 A (向右推進 →)', '密度小 (~2.7 g/cm³)・不易隱沒', new THREE.Vector3(-7.5, 2.2, 4.0), 'amber');
+            add3DLabel('大陸地殼 B (← 向左推進)', '無海洋板塊深層隱沒，故幾乎無火山', new THREE.Vector3(7.5, 2.2, 4.0), 'amber');
+        }
+
+        // SCENE 5: 錯動性板塊交界 (Transform Fault)
+        function buildSceneTransform() {
+            createAsthenosphereBase(24, 14, 'transform');
+
+            // Left & Right Blocks sliding past each other along Z-axis
+            const createSlidingBlock = (side) => {
+                const bGroup = new THREE.Group();
+                const geo = new THREE.BoxGeometry(11.6, 3.8, 13.5);
+                const mat = new THREE.MeshStandardMaterial({
+                    color: side === -1 ? 0x334155 : 0x475569,
+                    transparent: true,
+                    opacity: isXRay ? 0.35 : 1.0
+                });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(side * 5.9, -0.8, 0);
+                bGroup.add(mesh);
+                xrayMeshes.push(mesh);
+
+                // Top landscape layer + a displaced river & road across the fault
+                const topGeo = new THREE.BoxGeometry(11.6, 0.35, 13.5);
+                const topMat = new THREE.MeshStandardMaterial({ color: 0x166534 });
+                const topMesh = new THREE.Mesh(topGeo, topMat);
+                topMesh.position.set(side * 5.9, 1.25, 0);
+                bGroup.add(topMesh);
+
+                // River channel across the fault to visibly demonstrate horizontal offset
+                const riverGeo = new THREE.BoxGeometry(11.6, 0.44, 1.5);
+                const riverMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+                const riverMesh = new THREE.Mesh(riverGeo, riverMat);
+                riverMesh.position.set(side * 5.9, 1.28, -1.5);
+                bGroup.add(riverMesh);
+
+                // Highway / Fence marker across the fault
+                const roadGeo = new THREE.BoxGeometry(11.6, 0.44, 0.9);
+                const roadMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+                const roadMesh = new THREE.Mesh(roadGeo, roadMat);
+                roadMesh.position.set(side * 5.9, 1.28, 2.2);
+                bGroup.add(roadMesh);
+
+                sceneRootGroup.add(bGroup);
+
+                animatedObjects.push({
+                    mesh: bGroup,
+                    update: (dt, elapsed, prog) => {
+                        const slide = (prog - 0.5) * 4.2;
+                        bGroup.position.z = side * slide;
+                    }
+                });
+            };
+
+            createSlidingBlock(-1);
+            createSlidingBlock(1);
+
+            // Shear Force Arrows (Opposite directions along fault)
+            createForceArrow(new THREE.Vector3(-4.0, 2.8, -3.5), new THREE.Vector3(0, 0, 1), 5.0, 0x34d399);
+            createForceArrow(new THREE.Vector3(4.0, 2.8, 3.5), new THREE.Vector3(0, 0, -1), 5.0, 0x34d399);
+
+            // Shallow Earthquakes strictly along the central fault line (x = 0)
+            createEarthquakeFlashes([
+                { pos: new THREE.Vector3(0, 0.8, -4.0), depthType: 'shallow' },
+                { pos: new THREE.Vector3(0, 0.5, -1.0), depthType: 'shallow' },
+                { pos: new THREE.Vector3(0, 0.9, 2.0), depthType: 'shallow' },
+                { pos: new THREE.Vector3(0, 0.6, 4.8), depthType: 'shallow' }
+            ]);
+
+            // Labels
+            add3DLabel('轉形斷層 / 平移斷層', '如美國聖安德列斯斷層・明顯錯移河道與道路', new THREE.Vector3(0, 2.6, 0), 'emerald');
+            add3DLabel('剪力作用 (水平反向錯動)', '地殼既不生成、也不隱沒消亡', new THREE.Vector3(-5.5, 3.2, 2.5), 'cyan');
+            add3DLabel('僅有淺源地震・無火山！', '無岩漿湧出亦無隱沒熔融（會考必考）', new THREE.Vector3(5.0, 3.2, -2.5), 'amber');
+        }
+
+        // SCENE 6: 臺灣板塊構造 3D 模型 (Eurasian vs Philippine Sea Plate)
+        // ENHANCED: Philippine Sea Plate visibly pushes NW (-x, -z) into Eurasian Plate, uplifting Central & Coastal Mountain Ranges!
+        function buildSceneTaiwan() {
+            createAsthenosphereBase(24, 16, 'convergent');
+
+            // West: Eurasian Plate Group (歐亞板塊 - 大陸地殼與台灣西部/中央山脈)
+            const eurasianGroup = new THREE.Group();
+            sceneRootGroup.add(eurasianGroup);
+
+            const eurasianGeo = new THREE.BoxGeometry(13, 4.2, 16);
+            const eurasianMat = new THREE.MeshStandardMaterial({
+                color: 0xd97706,
+                transparent: true,
+                opacity: isXRay ? 0.35 : 1.0
+            });
+            const eurasianMesh = new THREE.Mesh(eurasianGeo, eurasianMat);
+            eurasianMesh.position.set(-5.2, -0.6, 0);
+            eurasianGroup.add(eurasianMesh);
+            xrayMeshes.push(eurasianMesh);
+
+            // Central Mountain Range (中央山脈 - Visibly uplifts along collision suture)
+            const centralMountains = new THREE.Group();
+            for (let z = -4.5; z <= 5.5; z += 1.8) {
+                const h = 4.0 - Math.abs(z) * 0.25;
+                const cmGeo = new THREE.ConeGeometry(1.65, h, 6);
+                const cmMat = new THREE.MeshStandardMaterial({ color: 0x15803d, flatShading: true });
+                const cm = new THREE.Mesh(cmGeo, cmMat);
+                cm.position.set(-0.8, 1.5 + h / 2, z);
+                centralMountains.add(cm);
+            }
+            eurasianGroup.add(centralMountains);
+
+            // Datun Volcano Group & Guishan Island in Northern Taiwan (z = -5.5)
+            const datunGeo = new THREE.ConeGeometry(1.3, 2.4, 12);
+            const datunMat = new THREE.MeshStandardMaterial({ color: 0xbe123c, flatShading: true });
+            const datun = new THREE.Mesh(datunGeo, datunMat);
+            datun.position.set(-1.2, 2.5, -5.8);
+            eurasianGroup.add(datun);
+
+            const guishan = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.6, 10), datunMat);
+            guishan.position.set(1.6, 0.8, -4.8);
+            eurasianGroup.add(guishan);
+
+            // East: Philippine Sea Plate Group (菲律賓海板塊 - Visibly moves NW to collide & subduct northward!)
+            const philGroup = new THREE.Group();
+            sceneRootGroup.add(philGroup);
+
+            const philGeo = new THREE.BoxGeometry(11, 2.6, 16);
+            const philMat = new THREE.MeshStandardMaterial({
+                color: 0x1e293b,
+                transparent: true,
+                opacity: isXRay ? 0.35 : 1.0
+            });
+            const philMesh = new THREE.Mesh(philGeo, philMat);
+            philMesh.position.set(6.5, -1.4, 0);
+            philGroup.add(philMesh);
+            xrayMeshes.push(philMesh);
+
+            // Moving seafloor stripes on Philippine Sea Plate
+            for (let s = 0; s < 3; s++) {
+                const stGeo = new THREE.BoxGeometry(0.6, 2.7, 16.1);
+                const stMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+                const st = new THREE.Mesh(stGeo, stMat);
+                st.position.set(3.2 + s * 2.8, -1.4, 0);
+                philGroup.add(st);
+            }
+
+            // Northward Subducting Slab in NE Taiwan (z < 0 is North)
+            const ryukyuSlabGeo = new THREE.BoxGeometry(8, 2.0, 8);
+            const ryukyuSlab = new THREE.Mesh(ryukyuSlabGeo, philMat);
+            ryukyuSlab.position.set(3.5, -3.5, -4.5);
+            ryukyuSlab.rotation.x = -Math.PI / 5; // Dipping Northward (negative Z)
+            philGroup.add(ryukyuSlab);
+            xrayMeshes.push(ryukyuSlab);
+
+            // Coastal Mountain Range (海岸山脈 - East of Longitudinal Valley, on Philippine Sea Plate)
+            for (let z = -1.0; z <= 5.5; z += 1.8) {
+                const hmGeo = new THREE.ConeGeometry(1.15, 2.3, 6);
+                const hmMat = new THREE.MeshStandardMaterial({ color: 0x0d9488, flatShading: true });
+                const hm = new THREE.Mesh(hmGeo, hmMat);
+                hm.position.set(1.8, 0.9, z);
+                philGroup.add(hm);
+            }
+
+            // NW Plate Motion Arrow attached to Philippine Sea Plate
+            const nwArrow = createForceArrow(new THREE.Vector3(8.5, 2.8, 4.5), new THREE.Vector3(-1, 0, -0.7), 5.0, 0xfbbf24);
+            sceneRootGroup.remove(nwArrow);
+            philGroup.add(nwArrow);
+
+            // Longitudinal Valley Line (花東縱谷板塊縫合線)
+            const valleyGeo = new THREE.BoxGeometry(0.45, 0.35, 12);
+            const valleyMat = new THREE.MeshBasicMaterial({ color: 0xfde047 });
+            const valleyLine = new THREE.Mesh(valleyGeo, valleyMat);
+            valleyLine.position.set(0.6, 1.6, 1.5);
+            sceneRootGroup.add(valleyLine);
+
+            // Animate Philippine Sea Plate pushing NW into Eurasian Plate & uplifting Central Mountains
+            animatedObjects.push({
+                mesh: philGroup,
+                update: (dt, elapsed, prog) => {
+                    // Starts further SE and pushes NW (-x, -z) into Taiwan!
+                    const dist = (1.0 - prog) * 2.4;
+                    philGroup.position.set(dist, 0, dist * 0.65);
+                    eurasianGroup.position.x = -dist * 0.35;
+                    centralMountains.scale.y = 0.65 + prog * 0.55;
+                }
+            });
+
+            // Taiwan Earthquakes (Shallow along Longitudinal Valley & West, Deepening Northward in NE)
+            createEarthquakeFlashes([
+                { pos: new THREE.Vector3(0.6, 1.2, 3.5), depthType: 'shallow' },
+                { pos: new THREE.Vector3(-1.5, 0.8, 1.0), depthType: 'shallow' },
+                { pos: new THREE.Vector3(0.6, 1.0, -1.0), depthType: 'shallow' },
+                { pos: new THREE.Vector3(3.0, -2.2, -3.5), depthType: 'intermediate' },
+                { pos: new THREE.Vector3(2.5, -4.5, -6.2), depthType: 'deep' }
+            ]);
+
+            // Labels
+            add3DLabel('歐亞板塊 (西側)', '包含中央山脈、雪山山脈與西部平原', new THREE.Vector3(-6.5, 2.8, 2.0), 'amber');
+            add3DLabel('菲律賓海板塊 (向西北推擠 ↖)', '每年向西北推進 7~8 cm 撞擊歐亞板塊', new THREE.Vector3(7.0, 2.2, 3.0), 'cyan');
+            add3DLabel('花東縱谷 (板塊交界縫合線)', '西側為中央山脈・東側為海岸山脈', new THREE.Vector3(0.6, 3.8, 2.5), 'emerald');
+            add3DLabel('大屯火山群與龜山島 (北方)', '菲律賓海板塊向北隱沒形成之安山岩火山', new THREE.Vector3(-0.5, 4.5, -5.8), 'rose');
+            add3DLabel('琉球海溝隱沒帶 (東北外海)', '菲律賓海板塊向北隱沒至歐亞板塊下', new THREE.Vector3(4.8, 1.2, -4.5), 'orange');
+        }
+
+        // ============================================================================
+        // 7. UI & SCENE CONTROLLERS
+        // ============================================================================
+        function loadScene(sceneKey) {
+            currentSceneKey = sceneKey;
+            clearCurrentScene();
+
+            // Reset default camera nicely
+            controls.target.set(0, -1, 0);
+            camera.position.set(0, 16, 32);
+
+            switch (sceneKey) {
+                case 'lithosphere': buildSceneLithosphere(); break;
+                case 'divergent': buildSceneDivergent(); break;
+                case 'convergent_oc': buildSceneConvergentOC(); break;
+                case 'convergent_cc': buildSceneConvergentCC(); break;
+                case 'transform': buildSceneTransform(); break;
+                case 'taiwan': buildSceneTaiwan(); break;
+            }
+
+            // Update Top HUD Info
+            const info = SCENE_INFO[sceneKey];
+            document.getElementById('scene-badge').textContent = info.badge;
+            document.getElementById('scene-title').textContent = info.title;
+            document.getElementById('scene-subtitle').textContent = info.subtitle;
+
+            // Update Quick Scene Buttons Highlight
+            document.querySelectorAll('.scene-select-btn').forEach(btn => {
+                btn.className = 'scene-select-btn text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-300 hover:bg-slate-800/80';
+            });
+            const activeQuickBtn = document.getElementById(`scene-btn-${sceneKey}`);
+            if (activeQuickBtn) {
+                activeQuickBtn.className = 'scene-select-btn text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-orange-500/20 text-orange-300 border border-orange-500/40';
+            }
+
+            // Update Module 2 Boundary Buttons & Detail Card
+            document.querySelectorAll('.bound-btn').forEach(btn => {
+                btn.className = 'bound-btn p-2.5 rounded-xl border border-slate-700 bg-slate-900/80 hover:border-slate-500 text-left transition flex flex-col justify-between text-slate-200';
+            });
+            const activeBoundBtn = document.getElementById(`bound-btn-${sceneKey}`);
+            if (activeBoundBtn) {
+                activeBoundBtn.className = 'bound-btn p-2.5 rounded-xl border border-orange-500 bg-orange-500/15 text-left transition flex flex-col justify-between text-white btn-active-glow';
+            }
+
+            updateBoundaryDetailPanel(info);
+        }
+
+        function updateBoundaryDetailPanel(info) {
+            const box = document.getElementById('boundary-detail-box');
+            if (box) {
+                box.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <span class="text-xs font-black text-orange-400">${info.badge}</span>
+                        <span class="text-[11px] text-slate-400">3D 即時對應中</span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-2 text-xs">
+                        <div><span class="text-slate-400 font-bold">• 應力與運動：</span><span class="text-white font-semibold">${info.stress}</span></div>
+                        <div><span class="text-slate-400 font-bold">• 常見斷層：</span><span class="text-amber-300 font-semibold">${info.fault}</span></div>
+                        <div><span class="text-slate-400 font-bold">• 代表地形：</span><span class="text-cyan-300">${info.landforms}</span></div>
+                        <div><span class="text-slate-400 font-bold">• 火山活動：</span><span class="text-rose-300">${info.volcano}</span></div>
+                        <div><span class="text-slate-400 font-bold">• 地震震源：</span><span class="text-yellow-300">${info.earthquake}</span></div>
+                        <div><span class="text-slate-400 font-bold">• 地殼變化：</span><span class="text-emerald-300">${info.crustChange}</span></div>
+                    </div>
+                `;
+            }
+            const tipBox = document.getElementById('boundary-exam-tip');
+            if (tipBox) {
+                tipBox.innerHTML = info.examTip;
+            }
+        }
+
+        function switchModule(modId) {
+            currentModule = modId;
+            // Toggle Panels
+            ['module1', 'module2', 'module3', 'module4'].forEach(id => {
+                const panel = document.getElementById(`panel-${id}`);
+                const tab = document.getElementById(`tab-${id}`);
+                if (id === modId) {
+                    panel.classList.remove('hidden');
+                    panel.classList.add('flex');
+                    tab.className = 'module-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap bg-orange-500 text-white shadow-md shadow-orange-500/30';
+                } else {
+                    panel.classList.add('hidden');
+                    panel.classList.remove('flex');
+                    tab.className = 'module-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap text-slate-300 hover:bg-slate-800';
+                }
+            });
+
+            // Automatically switch 3D scene to fit the selected module
+            if (modId === 'module1' && currentSceneKey !== 'lithosphere') {
+                loadScene('lithosphere');
+            } else if (modId === 'module2' && (currentSceneKey === 'lithosphere' || currentSceneKey === 'taiwan')) {
+                loadScene('divergent');
+            } else if (modId === 'module3' && currentSceneKey !== 'taiwan') {
+                loadScene('taiwan');
+            } else if (modId === 'module4') {
+                const q = QUIZ_QUESTIONS[currentQuizIndex];
+                if (q && currentSceneKey !== q.scene) {
+                    loadScene(q.scene);
+                }
+            }
+        }
+
+        // Camera Focus Helpers for Module 1
+        function focusLithospherePart(part) {
+            if (currentSceneKey !== 'lithosphere') loadScene('lithosphere');
+            if (part === 'continental') {
+                camera.position.set(-9, 10, 22);
+                controls.target.set(-6, 1, 0);
+            } else {
+                camera.position.set(9, 10, 22);
+                controls.target.set(6, 0, 0);
+            }
+        }
+
+        function selectTheoryStep(step) {
+            [1, 2, 3].forEach(s => {
+                const card = document.getElementById(`theory-card-${s}`);
+                if (s === step) {
+                    card.className = 'theory-card cursor-pointer p-3 rounded-xl bg-slate-800/95 border border-orange-500 transition shadow-lg';
+                } else {
+                    card.className = 'theory-card cursor-pointer p-3 rounded-xl bg-slate-900/80 border border-slate-700 hover:border-orange-500/60 transition';
+                }
+            });
+            if (step === 2) {
+                loadScene('divergent');
+            } else {
+                loadScene('lithosphere');
+            }
+        }
+
+        // Camera Focus Presets for Module 3 (Taiwan)
+        function focusTaiwanRegion(region) {
+            if (currentSceneKey !== 'taiwan') loadScene('taiwan');
+            ['all', 'north', 'east'].forEach(r => {
+                const btn = document.getElementById(`tw-btn-${r}`);
+                if (r === region) {
+                    btn.classList.add('border-amber-400', 'bg-slate-800');
+                    btn.classList.remove('border-slate-700');
+                } else {
+                    btn.classList.remove('border-amber-400', 'bg-slate-800');
+                    btn.classList.add('border-slate-700');
+                }
+            });
+
+            if (region === 'all') {
+                camera.position.set(0, 18, 32);
+                controls.target.set(0, 0, 0);
+            } else if (region === 'north') {
+                // Focus on NE Ryukyu subduction & Datun Volcano
+                camera.position.set(12, 12, -22);
+                controls.target.set(1, -1, -5);
+            } else if (region === 'east') {
+                // Focus on Hualien-Taitung Longitudinal Valley suture
+                camera.position.set(6, 9, 20);
+                controls.target.set(0.6, 1.5, 2.5);
+            }
+        }
+
+        // Interactive Stage Toolbar Toggles
+        function toggleLabels() {
+            showLabels = !showLabels;
+            const btn = document.getElementById('btn-toggle-labels');
+            btn.innerHTML = `<i class="fa-solid fa-tags"></i><span>地質標籤：${showLabels ? '開' : '關'}</span>`;
+            btn.className = showLabels
+                ? 'glass-panel px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 transition border border-emerald-500/50 text-emerald-300'
+                : 'glass-panel px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 transition text-slate-400';
+
+            activeLabels.forEach(item => {
+                item.element.style.display = showLabels ? 'block' : 'none';
+            });
+        }
+
+        function toggleXRay() {
+            isXRay = !isXRay;
+            const btn = document.getElementById('btn-toggle-xray');
+            btn.innerHTML = `<i class="fa-solid fa-eye"></i><span>剖面透視：${isXRay ? '開' : '關'}</span>`;
+            btn.className = isXRay
+                ? 'glass-panel px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 transition border border-cyan-400/60 text-cyan-300'
+                : 'glass-panel px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 transition text-slate-300';
+
+            xrayMeshes.forEach(mesh => {
+                if (mesh.material) {
+                    mesh.material.opacity = isXRay ? 0.35 : 1.0;
+                    mesh.material.needsUpdate = true;
+                }
+            });
+        }
+
+        function toggleQuakes() {
+            showQuakes = !showQuakes;
+            quakeGroup.visible = showQuakes;
+            const btn = document.getElementById('btn-toggle-quakes');
+            btn.innerHTML = `<i class="fa-solid fa-house-crack"></i><span>震源閃光：${showQuakes ? '開' : '關'}</span>`;
+            btn.className = showQuakes
+                ? 'glass-panel px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 transition border border-amber-500/50 text-amber-300'
+                : 'glass-panel px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 transition text-slate-400';
+        }
+
+        function resetCamera() {
+            camera.position.set(0, 16, 32);
+            controls.target.set(0, -1, 0);
+            controls.update();
+        }
+
+        function updateSpeed(val) {
+            animSpeed = parseFloat(val);
+            document.getElementById('speed-label').textContent = `${animSpeed.toFixed(1)}x`;
+            isPaused = animSpeed === 0;
+            document.getElementById('icon-play-pause').className = isPaused ? 'fa-solid fa-play text-xs' : 'fa-solid fa-pause text-xs';
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            const slider = document.getElementById('speed-slider');
+            if (isPaused) {
+                document.getElementById('speed-label').textContent = '暫停';
+                document.getElementById('icon-play-pause').className = 'fa-solid fa-play text-xs';
+            } else {
+                if (animSpeed === 0) {
+                    animSpeed = 1.2;
+                    slider.value = 1.2;
+                }
+                document.getElementById('speed-label').textContent = `${animSpeed.toFixed(1)}x`;
+                document.getElementById('icon-play-pause').className = 'fa-solid fa-pause text-xs';
+            }
+        }
+
+        function replayCollision() {
+            cycleProgress = 0;
+            accumulatedTime = 0;
+            isPaused = false;
+            document.getElementById('icon-play-pause').className = 'fa-solid fa-pause text-xs';
+            updateTimelineUI();
+        }
+
+        function scrubCycle(val) {
+            cycleProgress = parseFloat(val) / 100.0;
+            updateTimelineUI();
+            // Immediately update all 3D animated objects even when paused
+            animatedObjects.forEach(obj => {
+                if (obj.update) obj.update(0, accumulatedTime, cycleProgress);
+            });
+        }
+
+        function updateTimelineUI() {
+            const pct = Math.round(cycleProgress * 100);
+            const slider = document.getElementById('cycle-slider');
+            const label = document.getElementById('cycle-percent-label');
+            const statusText = document.getElementById('phase-status-text');
+            if (slider) slider.value = pct;
+            if (label) label.textContent = `${pct}%`;
+
+            if (statusText) {
+                let stageDesc = '';
+                if (pct < 30) {
+                    stageDesc = '階段 1：兩側板塊受力移動・開始接觸擠壓';
+                } else if (pct < 70) {
+                    stageDesc = '階段 2：板塊劇烈碰撞・海洋板塊持續向下隱沒 / 岩層褶皺';
+                } else {
+                    stageDesc = '階段 3：深部熔融岩漿上升噴發・高大山脈與海溝完全成形';
+                }
+                statusText.innerHTML = `<i class="fa-solid fa-forward-fast text-orange-400"></i><span>${stageDesc}</span>`;
+            }
+        }
+
+        function toggleSummaryModal(show) {
+            const modal = document.getElementById('summary-modal');
+            if (show) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            } else {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        // ============================================================================
+        // 8. MODULE 4: INTERACTIVE QUIZ SYSTEM (WITH 3D SCENE SYNC)
+        // ============================================================================
+        function renderQuizProgress() {
+            const bar = document.getElementById('quiz-progress-bar');
+            bar.innerHTML = '';
+            QUIZ_QUESTIONS.forEach((q, idx) => {
+                const ans = userAnswers[idx];
+                let statusColor = 'bg-slate-800 text-slate-400 border-slate-700';
+                if (ans !== null) {
+                    statusColor = ans === q.correct
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
+                        : 'bg-rose-500/20 text-rose-300 border-rose-500/50';
+                }
+                if (idx === currentQuizIndex) {
+                    statusColor += ' ring-2 ring-orange-500';
+                }
+
+                const btn = document.createElement('button');
+                btn.className = `flex-1 py-1.5 rounded-lg text-xs font-black border transition ${statusColor}`;
+                btn.textContent = `Q${idx + 1}`;
+                btn.onclick = () => {
+                    currentQuizIndex = idx;
+                    renderQuizProgress();
+                    renderQuizQuestion();
+                    loadScene(QUIZ_QUESTIONS[idx].scene);
+                };
+                bar.appendChild(btn);
+            });
+
+            // Calculate Score
+            let score = 0;
+            userAnswers.forEach((ans, i) => {
+                if (ans === QUIZ_QUESTIONS[i].correct) score += 20;
+            });
+            document.getElementById('quiz-score-badge').textContent = `${score}/100`;
+            document.getElementById('quiz-panel-score').textContent = `${score} / 100`;
+        }
+
+        function renderQuizQuestion() {
+            const q = QUIZ_QUESTIONS[currentQuizIndex];
+            const card = document.getElementById('quiz-question-card');
+            const selected = userAnswers[currentQuizIndex];
+
+            let optionsHTML = q.options.map((opt, oIdx) => {
+                let btnStyle = 'bg-slate-800/90 hover:bg-slate-750 border-slate-700 text-slate-200';
+                let iconHTML = '';
+
+                if (selected !== null) {
+                    if (oIdx === q.correct) {
+                        btnStyle = 'bg-emerald-500/20 border-emerald-500 text-emerald-200 font-bold';
+                        iconHTML = '<i class="fa-solid fa-circle-check text-emerald-400"></i>';
+                    } else if (oIdx === selected && selected !== q.correct) {
+                        btnStyle = 'bg-rose-500/20 border-rose-500 text-rose-200';
+                        iconHTML = '<i class="fa-solid fa-circle-xmark text-rose-400"></i>';
+                    } else {
+                        btnStyle = 'bg-slate-900/50 border-slate-800 text-slate-500';
+                    }
+                }
+
+                return `
+                    <button onclick="submitQuizAnswer(${oIdx})" ${selected !== null ? 'disabled' : ''} 
+                        class="w-full p-2.5 rounded-xl border text-left text-xs leading-relaxed flex items-center justify-between gap-2 transition ${btnStyle}">
+                        <span>${opt}</span>
+                        ${iconHTML}
+                    </button>
+                `;
+            }).join('');
+
+            let feedbackHTML = '';
+            if (selected !== null) {
+                const isCorrect = selected === q.correct;
+                feedbackHTML = `
+                    <div class="p-3 rounded-xl border ${isCorrect ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-200' : 'bg-rose-950/60 border-rose-500/50 text-rose-200'} text-xs leading-relaxed mt-2">
+                        <div class="font-black mb-1 flex items-center gap-1.5">
+                            <i class="fa-solid ${isCorrect ? 'fa-award text-amber-400' : 'fa-circle-exclamation text-rose-400'}"></i>
+                            <span>${isCorrect ? '太棒了！觀念完全正確 (+20分)' : '差一點點！來看看 3D 模型解析：'}</span>
+                        </div>
+                        <p class="text-slate-200">${q.explanation}</p>
+                    </div>
+                `;
+            }
+
+            card.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-orange-400">第 ${currentQuizIndex + 1} / ${QUIZ_QUESTIONS.length} 題</span>
+                    <button onclick="loadScene('${q.scene}')" class="text-[11px] text-cyan-300 hover:underline flex items-center gap-1">
+                        <i class="fa-solid fa-cube"></i>切換對應 3D 場景
+                    </button>
+                </div>
+                <p class="text-xs md:text-sm font-bold text-white leading-relaxed">${q.question}</p>
+                <div class="space-y-2">${optionsHTML}</div>
+                ${feedbackHTML}
+            `;
+
+            document.getElementById('btn-prev-q').disabled = currentQuizIndex === 0;
+            document.getElementById('btn-next-q').disabled = currentQuizIndex === QUIZ_QUESTIONS.length - 1;
+        }
+
+        function submitQuizAnswer(optionIdx) {
+            userAnswers[currentQuizIndex] = optionIdx;
+            const q = QUIZ_QUESTIONS[currentQuizIndex];
+            // Sync 3D model to the question's geological scene
+            if (currentSceneKey !== q.scene) {
+                loadScene(q.scene);
+            }
+            renderQuizProgress();
+            renderQuizQuestion();
+        }
+
+        function prevQuestion() {
+            if (currentQuizIndex > 0) {
+                currentQuizIndex--;
+                loadScene(QUIZ_QUESTIONS[currentQuizIndex].scene);
+                renderQuizProgress();
+                renderQuizQuestion();
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuizIndex < QUIZ_QUESTIONS.length - 1) {
+                currentQuizIndex++;
+                loadScene(QUIZ_QUESTIONS[currentQuizIndex].scene);
+                renderQuizProgress();
+                renderQuizQuestion();
+            }
+        }
+
+        function resetQuiz() {
+            userAnswers.fill(null);
+            currentQuizIndex = 0;
+            loadScene(QUIZ_QUESTIONS[0].scene);
+            renderQuizProgress();
+            renderQuizQuestion();
+        }
+
+        // ============================================================================
+        // 9. MAIN ANIMATION LOOP
+        // ============================================================================
+        let accumulatedTime = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const dt = clock.getDelta();
+            if (!isPaused) {
+                accumulatedTime += dt * animSpeed;
+                // Advance collision cycle (full cycle every ~7 seconds at 1x speed)
+                cycleProgress = (cycleProgress + dt * animSpeed * 0.14) % 1.0;
+                updateTimelineUI();
+
+                animatedObjects.forEach(obj => {
+                    if (obj.update) obj.update(dt * animSpeed, accumulatedTime, cycleProgress);
+                });
+            }
+
+            controls.update();
+            update3DLabels();
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
