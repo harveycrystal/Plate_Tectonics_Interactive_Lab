@@ -126,47 +126,104 @@
             border: 2px solid #fff;
         }
     </style>
-<!-- teaching-annotation-toolbar:v2:style:begin -->
+<!-- teaching-annotation-toolbar:v3:style:begin -->
 <style>
 body { position: relative; }
 
-    #ink-layer { position:absolute; inset:0; width:100%; height:100%; z-index:45; pointer-events:none; overflow:visible; touch-action:none; }
+    #ink-layer { position:fixed; inset:0; width:100vw; height:100vh; z-index:9000; pointer-events:none; overflow:visible; touch-action:none; }
     #ink-layer.ink-active { pointer-events:auto; cursor:crosshair; }
     #ink-layer:not(.ink-active) * { pointer-events:none !important; }
     #ink-layer.ink-erase { cursor:cell; }
     #ink-layer.ink-pan { cursor:grab; }
     #ink-layer.ink-pan.ink-panning { cursor:grabbing; }
+    #ink-layer.ink-magnifier { cursor:crosshair; }
     #ink-layer .ink-object { pointer-events:stroke; }
     #ink-layer .ink-text { pointer-events:all; }
-    #ink-tools { font-family:system-ui,"Noto Sans TC",sans-serif; position:fixed; z-index:46; left:12px; right:12px; bottom:12px; max-width:1200px; margin:auto; display:flex; align-items:center; gap:5px; padding:7px; border:1px solid #bfdbfe; border-radius:16px; background:rgba(255,255,255,.97); box-shadow:0 12px 32px #0f172a30; overflow-x:auto; white-space:nowrap; scrollbar-width:thin; }
+    #ink-tools { font-family:system-ui,"Noto Sans TC",sans-serif; position:fixed; z-index:9005; left:12px; right:12px; bottom:12px; max-width:1250px; margin:auto; display:flex; align-items:center; gap:5px; padding:7px; border:1px solid #bfdbfe; border-radius:16px; background:rgba(255,255,255,.97); box-shadow:0 12px 32px #0f172a30; overflow-x:auto; white-space:nowrap; scrollbar-width:thin; }
     #ink-tools.ink-floating { right:auto; bottom:auto; margin:0; width:max-content; max-width:calc(100vw - 24px); }
     #ink-tools #ink-drag { flex:none; width:32px; min-width:32px; padding:5px 0; cursor:grab; touch-action:none; user-select:none; color:#64748b; }
     #ink-tools #ink-drag:active { cursor:grabbing; }
-    #ink-tools button, #ink-tools select { font-family:inherit; cursor:pointer; flex:none; min-height:36px; border:1px solid #e2e8f0; border-radius:10px; padding:5px 9px; font-size:13px; font-weight:700; color:#334155; background:#f8fafc; }
+    #ink-tools button, #ink-tools select { font-family:inherit; cursor:pointer; flex:none; min-height:36px; border:1px solid #e2e8f0; border-radius:10px; padding:5px 9px; font-size:13px; font-weight:700; color:#334155; background:#f8fafc; transition:background 0.15s, border-color 0.15s; }
     #ink-tools button[aria-pressed="true"] { background:#1d4ed8; color:white; border-color:#1d4ed8; }
     #ink-tools button:disabled { opacity:.4; }
     #ink-tools button:focus-visible, #ink-tools select:focus-visible { outline:2px solid #2563eb; outline-offset:2px; }
-    #ink-palette { display:flex; align-items:center; gap:4px; flex:none; padding:3px 5px; border-radius:999px; background:#f1f5f9; }
-    #ink-tools .ink-swatch { position:relative; width:34px; height:34px; min-height:34px; padding:0; border:1px solid #0002; border-radius:50%; background:var(--swatch); }
-    #ink-tools .ink-swatch[aria-pressed="true"] { color:inherit; background:var(--swatch); border:2px solid white; outline:3px solid #1e293b; outline-offset:1px; }
-    #ink-tools .ink-swatch:focus-visible { outline:3px solid #2563eb; }
-    #ink-tools #ink-zoom { color:#2563eb; background:#eff6ff; border-color:#bfdbfe; }
+    
+    /* 調色盤與顏色按鈕樣式修復（強制鎖定色彩，防止被 aria-pressed 藍色覆寫） */
+    #ink-palette { display:flex; align-items:center; gap:5px; flex:none; padding:3px 6px; border-radius:999px; background:#f1f5f9; border:1px solid #e2e8f0; }
+    #ink-tools button.ink-swatch { position:relative; width:32px; height:32px; min-height:32px; padding:0; border-radius:50%; background:var(--swatch) !important; border:2px solid transparent; transition:transform 0.12s, outline 0.12s; }
+    #ink-tools button.ink-swatch:hover { transform:scale(1.1); }
+    #ink-tools button.ink-swatch[data-color="#ffffff"] { border:1.5px solid #94a3b8 !important; }
+    #ink-tools button.ink-swatch[aria-pressed="true"] { background:var(--swatch) !important; color:transparent !important; transform:scale(1.18); border:2px solid white !important; outline:3px solid #0f172a !important; outline-offset:1px; }
+    #ink-tools button.ink-swatch[data-color="#ffffff"][aria-pressed="true"] { border:2px solid #94a3b8 !important; outline:3px solid #0f172a !important; }
+    #ink-tools button.ink-swatch:focus-visible { outline:3px solid #2563eb; }
+
     #ink-tools #ink-number-reset { border-radius:0 10px 10px 0; margin-left:-5px; color:#9a3412; background:#fff7ed; border-color:#fed7aa; padding-inline:9px; }
     #ink-tools [data-ink="number"] { display:inline-flex; align-items:center; gap:5px; border-radius:10px 0 0 10px; color:#fff; background:#1e293b; border-color:#1e293b; }
     #ink-tools [data-ink="number"][aria-pressed="true"] { background:#1e293b; border-color:#fbbf24; }
-    #ink-next-number { display:inline-grid; place-items:center; width:23px; height:23px; border-radius:50%; background:#ef4038; color:#fff; font-size:15px; line-height:1; }
+    #ink-next-number { display:inline-grid; place-items:center; width:23px; height:23px; border-radius:50%; background:#ef4038; color:#fff; font-size:15px; line-height:1; font-weight:700; transition:background 0.15s, color 0.15s; }
     #ink-layer.ink-pen { cursor:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20d%3D%22M4%2028l5-1%2019-19-4-4L5%2023z%22%20fill%3D%22%23fff%22%20stroke%3D%22%23152238%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M5%2023l4%204-5%201z%22%20fill%3D%22%23ef4444%22%20stroke%3D%22%23152238%22%20stroke-width%3D%221.5%22%2F%3E%3Cpath%20d%3D%22M21%207l4%204%22%20stroke%3D%22%23152238%22%20stroke-width%3D%222%22%2F%3E%3C%2Fsvg%3E") 4 28, crosshair; }
     #ink-layer.ink-highlight { cursor:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20d%3D%22M5%2025l5%204%2018-18-5-5z%22%20fill%3D%22%23ffe34f%22%20stroke%3D%22%23152238%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M5%2025l5%204-6%201z%22%20fill%3D%22%23f4c430%22%20stroke%3D%22%23152238%22%20stroke-width%3D%221.5%22%2F%3E%3Cpath%20d%3D%22M22%206l6%205%22%20stroke%3D%22%23152238%22%20stroke-width%3D%222%22%2F%3E%3C%2Fsvg%3E") 4 28, crosshair; }
 
     #ink-tools input[type="range"] { width:67px; flex:none; accent-color:#2563eb; }
     #ink-tools .ink-divider { height:26px; width:1px; flex:none; background:#cbd5e1; margin:0 3px; }
     #ink-tools.ink-collapsed { right:auto; max-width:none; }
-    #ink-text-editor { position:absolute; z-index:72; min-width:150px; min-height:48px; font:700 20px "Noto Sans TC",sans-serif; padding:5px; border:2px solid #2563eb; background:white; resize:both; }
+    #ink-text-editor { position:fixed; z-index:9010; min-width:150px; min-height:48px; font:700 20px "Noto Sans TC",sans-serif; padding:5px; border:2px solid #2563eb; background:white; resize:both; box-shadow:0 8px 24px rgba(0,0,0,0.25); }
     #ink-tools [hidden] { display:none !important; }
     #ink-tools label[for="ink-size"] { font-size:12px; font-weight:700; color:#475569; }
-    #ink-spacer { height:68px; pointer-events:none; }
+
+    /* 局部範圍放大鏡樣式 */
+    #ink-magnifier-lens {
+        position:fixed;
+        width:230px;
+        height:230px;
+        border-radius:50%;
+        border:3.5px solid #0284c7;
+        box-shadow:0 14px 38px rgba(0,0,0,0.65), 0 0 0 2px rgba(255,255,255,0.7), inset 0 0 24px rgba(0,0,0,0.4);
+        pointer-events:none;
+        overflow:hidden;
+        z-index:9002;
+        display:none;
+        transform:translate(-50%, -50%);
+        background:#070b14;
+    }
+    #ink-magnifier-canvas {
+        width:100%;
+        height:100%;
+        display:block;
+        border-radius:50%;
+    }
+    #ink-magnifier-crosshair {
+        position:absolute;
+        inset:0;
+        pointer-events:none;
+        border-radius:50%;
+        box-shadow:inset 0 0 0 1px rgba(2,132,199,0.3);
+    }
+    #ink-magnifier-crosshair::before, #ink-magnifier-crosshair::after {
+        content:'';
+        position:absolute;
+        background:rgba(56,189,248,0.45);
+    }
+    #ink-magnifier-crosshair::before { left:50%; top:20px; bottom:20px; width:1px; transform:translateX(-50%); }
+    #ink-magnifier-crosshair::after { top:50%; left:20px; right:20px; height:1px; transform:translateY(-50%); }
+    #ink-magnifier-badge {
+        position:absolute;
+        bottom:10px;
+        left:50%;
+        transform:translateX(-50%);
+        background:rgba(15,23,42,0.92);
+        color:#38bdf8;
+        border:1px solid rgba(56,189,248,0.6);
+        border-radius:9999px;
+        font-size:11px;
+        font-weight:800;
+        padding:1px 10px;
+        box-shadow:0 2px 6px rgba(0,0,0,0.5);
+        pointer-events:none;
+        letter-spacing:0.5px;
+    }
 </style>
-<!-- teaching-annotation-toolbar:v2:style:end -->
+<!-- teaching-annotation-toolbar:v3:style:end -->
 </head>
 <body class="min-h-screen flex flex-col select-none">
 
@@ -936,7 +993,7 @@ body { position: relative; }
             camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 1000);
             camera.position.set(0, 18, 34);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true });
             renderer.setSize(width, height);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.shadowMap.enabled = true;
@@ -2406,9 +2463,13 @@ body { position: relative; }
             renderer.render(scene, camera);
         }
     </script>
-<!-- teaching-annotation-toolbar:v2:interface:begin -->
+<!-- teaching-annotation-toolbar:v3:interface:begin -->
 <svg id="ink-layer" aria-label="網頁標註層"></svg>
-<div id="ink-spacer" aria-hidden="true"></div>
+<div id="ink-magnifier-lens" aria-hidden="true">
+    <canvas id="ink-magnifier-canvas" width="230" height="230"></canvas>
+    <div id="ink-magnifier-crosshair"></div>
+    <div id="ink-magnifier-badge">2.0x</div>
+</div>
 <div id="ink-tools" role="toolbar" aria-label="教學標註工具">
     <button type="button" id="ink-drag" title="拖曳工具列；雙擊回到底部" aria-label="移動工具列；雙擊回到底部，方向鍵可微調">⠿</button>
     <button type="button" data-ink="cursor" title="操作網頁" aria-pressed="true">↖ 游標</button>
@@ -2422,11 +2483,13 @@ body { position: relative; }
       <button type="button" class="ink-swatch" data-color="#ef4038" style="--swatch:#ef4038" aria-label="紅色" aria-pressed="true" title="紅色"></button>
       <button type="button" class="ink-swatch" data-color="#2eaa61" style="--swatch:#2eaa61" aria-label="綠色" aria-pressed="false" title="綠色"></button>
       <button type="button" class="ink-swatch" data-color="#4285f4" style="--swatch:#4285f4" aria-label="藍色" aria-pressed="false" title="藍色"></button>
+      <button type="button" class="ink-swatch" data-color="#ffd000" style="--swatch:#ffd000" aria-label="黃色" aria-pressed="false" title="黃色"></button>
+      <button type="button" class="ink-swatch" data-color="#ffffff" style="--swatch:#ffffff" aria-label="白色" aria-pressed="false" title="白色"></button>
     </div>
-    <button type="button" id="ink-zoom" title="放大頁面，循環切換倍率" aria-label="放大頁面，目前 100%">⊕ 100%</button>
+    <button type="button" data-ink="magnifier" id="ink-magnifier-btn" title="局部範圍放大鏡 (滾輪可無級縮放倍率 1.5x~4.5x)" aria-pressed="false">🔍 放大鏡</button>
     <button type="button" data-ink="number" title="點選頁面標上數字" aria-pressed="false">☷ <span id="ink-next-number" aria-hidden="true">1</span></button>
     <button type="button" id="ink-number-reset" title="從 ① 重新編號，保留已標數字" aria-label="從 ① 重新編號，保留已標數字">↶</button>
-    <label for="ink-size" >粗細</label><input type="range" id="ink-size" min="2" max="18" value="4" aria-label="筆畫粗細">
+    <label for="ink-size">粗細</label><input type="range" id="ink-size" min="2" max="18" value="4" aria-label="筆畫粗細">
     <span class="ink-divider" aria-hidden="true"></span>
     <button type="button" id="ink-undo" title="復原上一筆" aria-label="復原上一筆">↶</button>
     <button type="button" id="ink-redo" title="重做上一筆" aria-label="重做上一筆">↷</button>
@@ -2434,45 +2497,66 @@ body { position: relative; }
     <button type="button" id="ink-clear" title="清除所有標註">清除</button>
     <button type="button" id="ink-collapse" title="收合工具列" aria-expanded="true">收合</button>
 </div>
-<!-- teaching-annotation-toolbar:v2:interface:end -->
+<!-- teaching-annotation-toolbar:v3:interface:end -->
 
-<!-- teaching-annotation-toolbar:v2:behavior:begin -->
+<!-- teaching-annotation-toolbar:v3:behavior:begin -->
 <script>
 (() => {
   const svg = document.getElementById('ink-layer');
   const tools = document.getElementById('ink-tools');
   const shapeSelect = document.getElementById('ink-shape');
+  const lens = document.getElementById('ink-magnifier-lens');
+  const magCanvas = document.getElementById('ink-magnifier-canvas');
+  const magCtx = magCanvas ? magCanvas.getContext('2d') : null;
+  const magBadge = document.getElementById('ink-magnifier-badge');
+  const numCircle = document.getElementById('ink-next-number');
+
   let selectedColor = '#ef4038';
   const swatches = [...document.querySelectorAll('#ink-palette .ink-swatch')];
+
+  function updateColor(color, activeBtn) {
+    selectedColor = color;
+    swatches.forEach(swatch => swatch.setAttribute('aria-pressed', String(swatch === activeBtn)));
+    if (numCircle) {
+      numCircle.style.background = selectedColor;
+      numCircle.style.color = (selectedColor === '#ffffff' || selectedColor === '#ffd000') ? '#0f172a' : '#ffffff';
+    }
+  }
+
   swatches.forEach(button => button.addEventListener('click', () => {
-    selectedColor = button.dataset.color;
-    swatches.forEach(swatch => swatch.setAttribute('aria-pressed', String(swatch === button)));
+    updateColor(button.dataset.color, button);
   }));
+
   const sizeInput = document.getElementById('ink-size');
   const pageKey = location.pathname || document.title || 'untitled';
-  const key = `teaching-ink-v1:${pageKey}`;
-  const numberKey = `teaching-number-next-v1:${pageKey}`;
+  const key = `teaching-ink-v3:${pageKey}`;
+  const numberKey = `teaching-number-next-v3:${pageKey}`;
   const circledNumbers = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨'];
   const NS = 'http://www.w3.org/2000/svg';
+
   let mode = 'cursor', active = null, pan = null, history = [], undoStack = [], redoStack = [], editor = null;
   let nextNumber = 1;
+  let magZoom = 2.0;
+  let lastMouseX = window.innerWidth / 2, lastMouseY = window.innerHeight / 2;
+
   try { const saved = Number(localStorage.getItem(numberKey)); if (Number.isInteger(saved) && saved >= 1 && saved <= 9) nextNumber = saved; } catch (_) {}
   try { const saved = JSON.parse(localStorage.getItem(key) || '[]'); if (Array.isArray(saved)) history = saved.filter(x => x && typeof x.kind === 'string').slice(0, 1200); } catch (_) {}
+
   const make = (tag, attrs) => {
     const node = document.createElementNS(NS, tag);
     Object.entries(attrs).forEach(([k,v]) => node.setAttribute(k, String(v)));
     return node;
   };
+
   function point(ev) {
-    const box = svg.getBoundingClientRect();
-    const scale = box.width / svg.clientWidth || 1;
-    return {x: (ev.clientX - box.left) / scale, y: (ev.clientY - box.top) / scale};
+    return { x: ev.clientX, y: ev.clientY };
   }
+
   function draw(item, index) {
     const common = {'data-index':index, class:'ink-object', fill:'none', stroke:item.color, 'stroke-width':item.size, 'stroke-linecap':'round', 'stroke-linejoin':'round'};
     let node;
     if (item.kind === 'pen' || item.kind === 'highlight') {
-      node = make('polyline', {...common, points:item.points.map(p=>`${p.x},${p.y}`).join(' '), 'pointer-events':'stroke', opacity:item.kind === 'highlight' ? .36 : 1, 'stroke-width':item.kind === 'highlight' ? Math.max(14,item.size*4) : item.size});
+      node = make('polyline', {...common, points:item.points.map(p=>`${p.x},${p.y}`).join(' '), 'pointer-events':'stroke', opacity:item.kind === 'highlight' ? .38 : 1, 'stroke-width':item.kind === 'highlight' ? Math.max(14,item.size*4) : item.size});
     } else if (item.kind === 'rect') {
       node = make('rect', {...common, x:Math.min(item.x,item.x2), y:Math.min(item.y,item.y2), width:Math.max(1,Math.abs(item.x2-item.x)), height:Math.max(1,Math.abs(item.y2-item.y))});
     } else if (item.kind === 'ellipse') {
@@ -2487,13 +2571,15 @@ body { position: relative; }
       item.value.split('\n').forEach((line,i)=>{const span=make('tspan',{x:item.x,dy:i?Math.max(22,item.size*5):0});span.textContent=line;node.appendChild(span)});
     } else if (item.kind === 'number') {
       node=make('g', {'data-index':index,class:'ink-number'});
-      node.appendChild(make('circle',{cx:item.x,cy:item.y,r:19,fill:'#ef4038',stroke:'#fff','stroke-width':1,'pointer-events':'all'}));
-      const label=make('text',{x:item.x,y:item.y,fill:'#fff','text-anchor':'middle','dominant-baseline':'central','font-family':'Arial, sans-serif','font-size':23,'font-weight':'700','pointer-events':'none'});
+      const isLight = item.color === '#ffffff' || item.color === '#ffd000';
+      node.appendChild(make('circle',{cx:item.x,cy:item.y,r:19,fill:item.color || '#ef4038',stroke:isLight ? '#0f172a' : '#fff','stroke-width':1.5,'pointer-events':'all'}));
+      const label=make('text',{x:item.x,y:item.y,fill:isLight ? '#0f172a' : '#fff','text-anchor':'middle','dominant-baseline':'central','font-family':'Arial, sans-serif','font-size':22,'font-weight':'700','pointer-events':'none'});
       label.textContent=String(item.number);
       node.appendChild(label);
     }
     return node;
   }
+
   function render() {
     svg.replaceChildren(make('rect',{x:0,y:0,width:'100%',height:'100%',fill:'transparent','pointer-events':mode==='cursor'?'none':'all'}),...history.map(draw));
     document.getElementById('ink-undo').disabled = !undoStack.length;
@@ -2501,194 +2587,401 @@ body { position: relative; }
     document.getElementById('ink-next-number').textContent = String(nextNumber);
     tools.querySelector('[data-ink="number"]').setAttribute('aria-label',`數字標記，下一個 ${circledNumbers[nextNumber-1]}`);
   }
+
   function persist() { try { localStorage.setItem(key,JSON.stringify(history)); localStorage.setItem(numberKey,String(nextNumber)); } catch (_) {} }
   function commit(item) { const index=history.length; history.push(item); const before=nextNumber; if(item.kind==='number')nextNumber=nextNumber%9+1; undoStack.push({type:'add',item,index,before,after:nextNumber}); redoStack=[]; persist(); render(); }
+
+  // 局部放大鏡渲染核心
+  function updateMagnifierView(mx, my) {
+    if (!magCtx || mode !== 'magnifier') return;
+    const size = magCanvas.width;
+    magCtx.clearRect(0, 0, size, size);
+
+    // 1. 抓取底層 3D WebGL Canvas
+    const webglCanvas = document.querySelector('#canvas-container canvas') || document.querySelector('canvas');
+    if (webglCanvas) {
+      const rect = webglCanvas.getBoundingClientRect();
+      const relX = mx - rect.left;
+      const relY = my - rect.top;
+      const scaleX = webglCanvas.width / rect.width;
+      const scaleY = webglCanvas.height / rect.height;
+      const sw = (size / magZoom) * scaleX;
+      const sh = (size / magZoom) * scaleY;
+      const sx = relX * scaleX - sw / 2;
+      const sy = relY * scaleY - sh / 2;
+
+      magCtx.save();
+      magCtx.fillStyle = '#070b14';
+      magCtx.fillRect(0, 0, size, size);
+      try {
+        magCtx.drawImage(webglCanvas, sx, sy, sw, sh, 0, 0, size, size);
+      } catch (_) {}
+      magCtx.restore();
+    } else {
+      magCtx.fillStyle = '#0f172a';
+      magCtx.fillRect(0, 0, size, size);
+    }
+
+    // 2. 疊加放大標註層筆跡
+    magCtx.save();
+    magCtx.translate(size / 2, size / 2);
+    magCtx.scale(magZoom, magZoom);
+    magCtx.translate(-mx, -my);
+
+    history.forEach(item => {
+      magCtx.strokeStyle = item.color;
+      magCtx.fillStyle = item.color;
+      magCtx.lineWidth = item.size;
+      magCtx.lineCap = 'round';
+      magCtx.lineJoin = 'round';
+
+      if (item.kind === 'pen' || item.kind === 'highlight') {
+        if (!item.points || !item.points.length) return;
+        magCtx.save();
+        if (item.kind === 'highlight') {
+          magCtx.globalAlpha = 0.38;
+          magCtx.lineWidth = Math.max(14, item.size * 4);
+        }
+        magCtx.beginPath();
+        magCtx.moveTo(item.points[0].x, item.points[0].y);
+        for (let i = 1; i < item.points.length; i++) magCtx.lineTo(item.points[i].x, item.points[i].y);
+        magCtx.stroke();
+        magCtx.restore();
+      } else if (item.kind === 'rect') {
+        const x = Math.min(item.x, item.x2), y = Math.min(item.y, item.y2);
+        const w = Math.abs(item.x2 - item.x), h = Math.abs(item.y2 - item.y);
+        magCtx.strokeRect(x, y, w, h);
+      } else if (item.kind === 'ellipse') {
+        magCtx.beginPath();
+        magCtx.ellipse((item.x + item.x2) / 2, (item.y + item.y2) / 2, Math.abs(item.x2 - item.x) / 2, Math.abs(item.y2 - item.y) / 2, 0, 0, Math.PI * 2);
+        magCtx.stroke();
+      } else if (item.kind === 'arrow') {
+        const angle = Math.atan2(item.y2 - item.y, item.x2 - item.x), head = Math.max(12, item.size * 4);
+        magCtx.beginPath();
+        magCtx.moveTo(item.x, item.y);
+        magCtx.lineTo(item.x2, item.y2);
+        magCtx.lineTo(item.x2 - head * Math.cos(angle - 0.55), item.y2 - head * Math.sin(angle - 0.55));
+        magCtx.moveTo(item.x2, item.y2);
+        magCtx.lineTo(item.x2 - head * Math.cos(angle + 0.55), item.y2 - head * Math.sin(angle + 0.55));
+        magCtx.stroke();
+      } else if (item.kind === 'text') {
+        magCtx.font = `700 ${Math.max(18, item.size * 4)}px 'Noto Sans TC', sans-serif`;
+        item.value.split('\n').forEach((line, i) => {
+          magCtx.fillText(line, item.x, item.y + (i ? Math.max(22, item.size * 5) : 0));
+        });
+      } else if (item.kind === 'number') {
+        const isLight = item.color === '#ffffff' || item.color === '#ffd000';
+        magCtx.beginPath();
+        magCtx.arc(item.x, item.y, 19, 0, Math.PI * 2);
+        magCtx.fillStyle = item.color || '#ef4038';
+        magCtx.fill();
+        magCtx.strokeStyle = isLight ? '#0f172a' : '#ffffff';
+        magCtx.lineWidth = 1.5;
+        magCtx.stroke();
+        magCtx.fillStyle = isLight ? '#0f172a' : '#ffffff';
+        magCtx.font = "700 22px Arial, sans-serif";
+        magCtx.textAlign = 'center';
+        magCtx.textBaseline = 'middle';
+        magCtx.fillText(String(item.number), item.x, item.y);
+      }
+    });
+
+    magCtx.restore();
+  }
+
   function setMode(next) {
     if (editor) editor.blur();
     if (pan) {
       if (svg.hasPointerCapture(pan.id)) svg.releasePointerCapture(pan.id);
       pan = null;
     }
-    mode=next;
-    svg.classList.toggle('ink-active',next!=='cursor');
-    svg.classList.toggle('ink-erase',next==='eraser');
-    svg.classList.toggle('ink-pan',next==='pan');
+    mode = next;
+    svg.classList.toggle('ink-active', next !== 'cursor');
+    svg.classList.toggle('ink-erase', next === 'eraser');
+    svg.classList.toggle('ink-pan', next === 'pan');
+    svg.classList.toggle('ink-magnifier', next === 'magnifier');
     svg.classList.remove('ink-panning');
-    svg.classList.toggle('ink-pen',next==='pen');
-    svg.classList.toggle('ink-highlight',next==='highlight');
+    svg.classList.toggle('ink-pen', next === 'pen');
+    svg.classList.toggle('ink-highlight', next === 'highlight');
+
+    if (lens) {
+      lens.style.display = next === 'magnifier' ? 'block' : 'none';
+      if (next === 'magnifier') updateMagnifierView(lastMouseX, lastMouseY);
+    }
+
     render();
-    tools.querySelectorAll('[data-ink]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.ink===next)));
-    if (!['rect','ellipse','arrow'].includes(next)) shapeSelect.value='cursor';
+    tools.querySelectorAll('[data-ink]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ink === next)));
+    if (!['rect','ellipse','arrow'].includes(next)) shapeSelect.value = 'cursor';
   }
-  tools.querySelectorAll('[data-ink]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.ink)));
-  shapeSelect.addEventListener('change',()=>{if(shapeSelect.value!=='cursor')setMode(shapeSelect.value)});
+
+  tools.querySelectorAll('[data-ink]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.ink)));
+  shapeSelect.addEventListener('change', () => { if (shapeSelect.value !== 'cursor') setMode(shapeSelect.value); });
+
+  // 滑鼠滾輪縮放放大鏡倍率
+  window.addEventListener('wheel', e => {
+    if (mode === 'magnifier') {
+      e.preventDefault();
+      if (e.deltaY < 0) {
+        magZoom = Math.min(4.5, magZoom + 0.25);
+      } else {
+        magZoom = Math.max(1.5, magZoom - 0.25);
+      }
+      if (magBadge) magBadge.textContent = `${magZoom.toFixed(1)}x`;
+      updateMagnifierView(lastMouseX, lastMouseY);
+    }
+  }, { passive: false });
+
+  // 全域指標監聽（放大鏡即時跟隨與 3D 動態畫面更新）
+  window.addEventListener('pointermove', e => {
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+    if (mode === 'magnifier' && lens) {
+      lens.style.left = `${e.clientX}px`;
+      lens.style.top = `${e.clientY}px`;
+      updateMagnifierView(e.clientX, e.clientY);
+    }
+  });
+
+  // 當處於放大鏡模式時，配合 Three.js 幀率持續刷新畫面細節
+  function loopMagnifier() {
+    if (mode === 'magnifier') {
+      updateMagnifierView(lastMouseX, lastMouseY);
+    }
+    requestAnimationFrame(loopMagnifier);
+  }
+  requestAnimationFrame(loopMagnifier);
+
   function startText(p) {
-    editor=document.createElement('textarea');editor.id='ink-text-editor';editor.setAttribute('aria-label','輸入標註文字，按 Enter 完成');
-    editor.style.left=`${p.x}px`;editor.style.top=`${p.y}px`;editor.style.color=selectedColor;
-    document.body.appendChild(editor);editor.focus();
-    const color=selectedColor,size=Number(sizeInput.value);
-    let done=false;
-    function finish(){if(done)return;done=true;const value=editor.value.trim();editor.remove();editor=null;if(value)commit({kind:'text',x:p.x,y:p.y+Math.max(18,size*4),color,size,value})}
-    editor.addEventListener('blur',finish);
-    editor.addEventListener('keydown',e=>{if(e.key==='Escape'){editor.value='';editor.blur()}else if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();editor.blur()}});
+    editor = document.createElement('textarea');
+    editor.id = 'ink-text-editor';
+    editor.setAttribute('aria-label', '輸入標註文字，按 Enter 完成');
+    editor.style.left = `${p.x}px`;
+    editor.style.top = `${p.y}px`;
+    editor.style.color = selectedColor;
+    document.body.appendChild(editor);
+    editor.focus();
+    const color = selectedColor, size = Number(sizeInput.value);
+    let done = false;
+    function finish() {
+      if (done) return;
+      done = true;
+      const value = editor.value.trim();
+      editor.remove();
+      editor = null;
+      if (value) commit({ kind: 'text', x: p.x, y: p.y + Math.max(18, size * 4), color, size, value });
+    }
+    editor.addEventListener('blur', finish);
+    editor.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { editor.value = ''; editor.blur(); }
+      else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); editor.blur(); }
+    });
   }
-  svg.addEventListener('pointerdown',e=>{
-    if(mode==='cursor'||e.button!==0)return;
+
+  svg.addEventListener('pointerdown', e => {
+    if (mode === 'cursor' || e.button !== 0) return;
     e.preventDefault();
-    if(mode==='pan') {
-      pan={id:e.pointerId,x:e.clientX,y:e.clientY};
+    if (mode === 'magnifier') {
+      // 放大鏡模式下點擊可切換至 游標 模式
+      setMode('cursor');
+      return;
+    }
+    if (mode === 'pan') {
+      pan = { id: e.pointerId, x: e.clientX, y: e.clientY };
       svg.setPointerCapture(e.pointerId);
       svg.classList.add('ink-panning');
       return;
     }
-    if(mode==='eraser') {
-      const obj=e.target.closest('[data-index]');
-      if(obj){const i=Number(obj.getAttribute('data-index'));const [item]=history.splice(i,1);undoStack.push({type:'remove',item,index:i});redoStack=[];persist();render()}
+    if (mode === 'eraser') {
+      const obj = e.target.closest('[data-index]');
+      if (obj) {
+        const i = Number(obj.getAttribute('data-index'));
+        const [item] = history.splice(i, 1);
+        undoStack.push({ type: 'remove', item, index: i });
+        redoStack = [];
+        persist();
+        render();
+      }
       return;
     }
-    const p=point(e);
-    if(mode==='text'){startText(p);return}
-    if(mode==='number'){commit({kind:'number',x:p.x,y:p.y,number:nextNumber});return}
-    active={kind:mode,color:selectedColor,size:Number(sizeInput.value),x:p.x,y:p.y,x2:p.x,y2:p.y,points:[p]};
+    const p = point(e);
+    if (mode === 'text') { startText(p); return; }
+    if (mode === 'number') { commit({ kind: 'number', x: p.x, y: p.y, color: selectedColor, number: nextNumber }); return; }
+    active = { kind: mode, color: selectedColor, size: Number(sizeInput.value), x: p.x, y: p.y, x2: p.x, y2: p.y, points: [p] };
     svg.setPointerCapture(e.pointerId);
   });
-  svg.addEventListener('pointermove',e=>{
-    if (pan && e.pointerId===pan.id) {
-      const dx=e.clientX-pan.x,dy=e.clientY-pan.y;
-      pan.x=e.clientX;pan.y=e.clientY;
-      const zoom=parseFloat(getComputedStyle(document.documentElement).zoom)||1;
-      window.scrollBy(-dx/zoom,-dy/zoom);
+
+  svg.addEventListener('pointermove', e => {
+    if (pan && e.pointerId === pan.id) {
+      const dx = e.clientX - pan.x, dy = e.clientY - pan.y;
+      pan.x = e.clientX; pan.y = e.clientY;
+      window.scrollBy(-dx, -dy);
       return;
     }
-    if(!active)return;
-    const p=point(e);
-    if(active.kind==='pen'||active.kind==='highlight') active.points.push(p);
-    else {active.x2=p.x;active.y2=p.y}
-    svg.replaceChildren(make('rect',{x:0,y:0,width:'100%',height:'100%',fill:'transparent','pointer-events':'all'}),...history.map(draw),draw(active,history.length));
+    if (!active) return;
+    const p = point(e);
+    if (active.kind === 'pen' || active.kind === 'highlight') active.points.push(p);
+    else { active.x2 = p.x; active.y2 = p.y; }
+    svg.replaceChildren(make('rect', { x: 0, y: 0, width: '100%', height: '100%', fill: 'transparent', 'pointer-events': 'all' }), ...history.map(draw), draw(active, history.length));
   });
-  function finish(e){
-    if (pan && e.pointerId===pan.id) {
-      pan=null;
+
+  function finish(e) {
+    if (pan && e.pointerId === pan.id) {
+      pan = null;
       svg.classList.remove('ink-panning');
-      if(svg.hasPointerCapture(e.pointerId))svg.releasePointerCapture(e.pointerId);
+      if (svg.hasPointerCapture(e.pointerId)) svg.releasePointerCapture(e.pointerId);
       return;
     }
-    if(!active)return;const item=active;active=null;
-    if(svg.hasPointerCapture(e.pointerId))svg.releasePointerCapture(e.pointerId);
-    if(item.points.length===1 && (item.kind==='pen'||item.kind==='highlight')) item.points.push({x:item.x+.1,y:item.y+.1});
+    if (!active) return;
+    const item = active; active = null;
+    if (svg.hasPointerCapture(e.pointerId)) svg.releasePointerCapture(e.pointerId);
+    if (item.points && item.points.length === 1 && (item.kind === 'pen' || item.kind === 'highlight')) item.points.push({ x: item.x + .1, y: item.y + .1 });
     commit(item);
   }
-  svg.addEventListener('pointerup',finish);
-  svg.addEventListener('pointercancel',e=>{if(pan && e.pointerId===pan.id){pan=null;svg.classList.remove('ink-panning')}active=null;render()});
-  document.getElementById('ink-undo').addEventListener('click',()=>{if(!undoStack.length)return;const a=undoStack.pop();if(a.type==='add'){history.splice(a.index,1);if(a.item.kind==='number')nextNumber=a.before}else if(a.type==='remove')history.splice(a.index,0,a.item);else if(a.type==='renumber')nextNumber=a.before;else {history=a.items.slice();nextNumber=a.before}redoStack.push(a);persist();render()});
-  document.getElementById('ink-redo').addEventListener('click',()=>{if(!redoStack.length)return;const a=redoStack.pop();if(a.type==='add'){history.splice(a.index,0,a.item);if(a.item.kind==='number')nextNumber=a.after}else if(a.type==='remove')history.splice(a.index,1);else if(a.type==='renumber')nextNumber=1;else {history=[];nextNumber=1}undoStack.push(a);persist();render()});
-  document.getElementById('ink-number-reset').addEventListener('click',()=>{if(nextNumber===1)return;undoStack.push({type:'renumber',before:nextNumber});redoStack=[];nextNumber=1;persist();render()});
-  document.getElementById('ink-clear').addEventListener('click',()=>{if(history.length&&confirm('確定清除這份教材的所有標註？')){const previous=history.slice(),before=nextNumber;history=[];nextNumber=1;undoStack.push({type:'clear',items:previous,before});redoStack=[];persist();render()}});
-  const zoomButton = document.getElementById('ink-zoom');
-  const zoomLevels = [1, 1.25, 1.5, 1.75];
-  let zoomIndex = 0;
+
+  svg.addEventListener('pointerup', finish);
+  svg.addEventListener('pointercancel', e => { if (pan && e.pointerId === pan.id) { pan = null; svg.classList.remove('ink-panning'); } active = null; render(); });
+
+  document.getElementById('ink-undo').addEventListener('click', () => {
+    if (!undoStack.length) return;
+    const a = undoStack.pop();
+    if (a.type === 'add') { history.splice(a.index, 1); if (a.item.kind === 'number') nextNumber = a.before; }
+    else if (a.type === 'remove') history.splice(a.index, 0, a.item);
+    else if (a.type === 'renumber') nextNumber = a.before;
+    else { history = a.items.slice(); nextNumber = a.before; }
+    redoStack.push(a); persist(); render();
+  });
+
+  document.getElementById('ink-redo').addEventListener('click', () => {
+    if (!redoStack.length) return;
+    const a = redoStack.pop();
+    if (a.type === 'add') { history.splice(a.index, 0, a.item); if (a.item.kind === 'number') nextNumber = a.after; }
+    else if (a.type === 'remove') history.splice(a.index, 1);
+    else if (a.type === 'renumber') nextNumber = 1;
+    else { history = []; nextNumber = 1; }
+    undoStack.push(a); persist(); render();
+  });
+
+  document.getElementById('ink-number-reset').addEventListener('click', () => {
+    if (nextNumber === 1) return;
+    undoStack.push({ type: 'renumber', before: nextNumber });
+    redoStack = []; nextNumber = 1; persist(); render();
+  });
+
+  document.getElementById('ink-clear').addEventListener('click', () => {
+    if (history.length && confirm('確定清除這份教材的所有標註？')) {
+      const previous = history.slice(), before = nextNumber;
+      history = []; nextNumber = 1;
+      undoStack.push({ type: 'clear', items: previous, before });
+      redoStack = []; persist(); render();
+    }
+  });
+
+  // 工具列拖曳與浮動定位
   const dragHandle = document.getElementById('ink-drag');
-  const toolbarPositionKey = `teaching-toolbar-position-v1:${pageKey}`;
+  const toolbarPositionKey = `teaching-toolbar-position-v3:${pageKey}`;
   let drag = null;
   const toolbarScale = () => tools.offsetWidth ? tools.getBoundingClientRect().width / tools.offsetWidth || 1 : 1;
+
   function keepToolbarVisible() {
     if (!tools.classList.contains('ink-floating')) return;
     const scale = toolbarScale();
-    tools.style.maxWidth = `${Math.max(80,(window.innerWidth-24)/scale)}px`;
+    tools.style.maxWidth = `${Math.max(80, (window.innerWidth - 24) / scale)}px`;
     const rect = tools.getBoundingClientRect();
-    const dx = rect.width > window.innerWidth-16 ? 8-rect.left : Math.max(8-rect.left,Math.min(0,window.innerWidth-8-rect.right));
-    const dy = rect.height > window.innerHeight-16 ? 8-rect.top : Math.max(8-rect.top,Math.min(0,window.innerHeight-8-rect.bottom));
-    tools.style.left = `${parseFloat(tools.style.left)+dx/scale}px`;
-    tools.style.top = `${parseFloat(tools.style.top)+dy/scale}px`;
+    const dx = rect.width > window.innerWidth - 16 ? 8 - rect.left : Math.max(8 - rect.left, Math.min(0, window.innerWidth - 8 - rect.right));
+    const dy = rect.height > window.innerHeight - 16 ? 8 - rect.top : Math.max(8 - rect.top, Math.min(0, window.innerHeight - 8 - rect.bottom));
+    tools.style.left = `${parseFloat(tools.style.left) + dx / scale}px`;
+    tools.style.top = `${parseFloat(tools.style.top) + dy / scale}px`;
   }
+
   function rememberToolbarPosition() {
-    if(!tools.classList.contains('ink-floating'))return;
-    const left=parseFloat(tools.style.left),top=parseFloat(tools.style.top);
-    if(!Number.isFinite(left)||!Number.isFinite(top))return;
-    try { localStorage.setItem(toolbarPositionKey,JSON.stringify({left,top})); } catch (_) {}
+    if (!tools.classList.contains('ink-floating')) return;
+    const left = parseFloat(tools.style.left), top = parseFloat(tools.style.top);
+    if (!Number.isFinite(left) || !Number.isFinite(top)) return;
+    try { localStorage.setItem(toolbarPositionKey, JSON.stringify({ left, top })); } catch (_) {}
   }
+
   function floatToolbar() {
     if (tools.classList.contains('ink-floating')) return;
     const rect = tools.getBoundingClientRect(), scale = toolbarScale(), width = tools.offsetWidth;
     tools.classList.add('ink-floating');
     tools.style.width = `${width}px`;
-    tools.style.left = `${rect.left/scale}px`;
-    tools.style.top = `${rect.top/scale}px`;
+    tools.style.left = `${rect.left / scale}px`;
+    tools.style.top = `${rect.top / scale}px`;
     keepToolbarVisible();
   }
+
   function resetToolbarPosition() {
     drag = null;
     tools.classList.remove('ink-floating');
     for (const name of ['left','top','width','maxWidth']) tools.style[name] = '';
     try { localStorage.removeItem(toolbarPositionKey); } catch (_) {}
   }
+
   dragHandle.addEventListener('pointerdown', e => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     e.preventDefault();
-    drag = {id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false };
     dragHandle.setPointerCapture(e.pointerId);
   });
+
   dragHandle.addEventListener('pointermove', e => {
     if (!drag || e.pointerId !== drag.id) return;
-    if(!drag.moved){
-      if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<4)return;
+    if (!drag.moved) {
+      if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 4) return;
       floatToolbar();
-      Object.assign(drag,{moved:true,left:parseFloat(tools.style.left),top:parseFloat(tools.style.top),scale:toolbarScale()});
+      Object.assign(drag, { moved: true, left: parseFloat(tools.style.left), top: parseFloat(tools.style.top), scale: toolbarScale() });
     }
-    tools.style.left = `${drag.left+(e.clientX-drag.x)/drag.scale}px`;
-    tools.style.top = `${drag.top+(e.clientY-drag.y)/drag.scale}px`;
+    tools.style.left = `${drag.left + (e.clientX - drag.x) / drag.scale}px`;
+    tools.style.top = `${drag.top + (e.clientY - drag.y) / drag.scale}px`;
     keepToolbarVisible();
   });
+
   function finishDragging(e) {
     if (!drag || e.pointerId !== drag.id) return;
-    const moved=drag.moved;
+    const moved = drag.moved;
     drag = null;
     if (dragHandle.hasPointerCapture(e.pointerId)) dragHandle.releasePointerCapture(e.pointerId);
-    if(moved)rememberToolbarPosition();
+    if (moved) rememberToolbarPosition();
   }
-  dragHandle.addEventListener('pointerup',finishDragging);
-  dragHandle.addEventListener('pointercancel',finishDragging);
-  dragHandle.addEventListener('dblclick',resetToolbarPosition);
-  dragHandle.addEventListener('keydown',e=>{
-    if(e.key==='Home'){e.preventDefault();resetToolbarPosition();return}
-    const steps={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
-    if(!steps[e.key])return;
-    e.preventDefault();floatToolbar();
-    const amount=e.shiftKey?30:10,[dx,dy]=steps[e.key];
-    tools.style.left=`${parseFloat(tools.style.left)+dx*amount}px`;
-    tools.style.top=`${parseFloat(tools.style.top)+dy*amount}px`;
-    keepToolbarVisible();rememberToolbarPosition();
-  });
+
+  dragHandle.addEventListener('pointerup', finishDragging);
+  dragHandle.addEventListener('pointercancel', finishDragging);
+  dragHandle.addEventListener('dblclick', resetToolbarPosition);
+
   try {
-    const saved=JSON.parse(localStorage.getItem(toolbarPositionKey)||'null');
-    if(saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)){
+    const saved = JSON.parse(localStorage.getItem(toolbarPositionKey) || 'null');
+    if (saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)) {
       tools.classList.add('ink-floating');
-      tools.style.left=`${saved.left}px`;
-      tools.style.top=`${saved.top}px`;
+      tools.style.left = `${saved.left}px`;
+      tools.style.top = `${saved.top}px`;
       requestAnimationFrame(keepToolbarVisible);
     }
   } catch (_) {}
-  window.addEventListener('resize',keepToolbarVisible);
-  zoomButton.addEventListener('click', () => {
-    zoomIndex = (zoomIndex + 1) % zoomLevels.length;
-    const percent = Math.round(zoomLevels[zoomIndex] * 100);
-    document.documentElement.style.zoom = String(zoomLevels[zoomIndex]);
-    zoomButton.textContent = `⊕ ${percent}%`;
-    zoomButton.setAttribute('aria-label', `放大頁面，目前 ${percent}%`);
-    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+
+  window.addEventListener('resize', keepToolbarVisible);
+
+  document.getElementById('ink-collapse').addEventListener('click', e => {
+    const collapsed = tools.classList.toggle('ink-collapsed');
+    [...tools.children].forEach(child => { if (child !== e.currentTarget && child !== dragHandle) child.hidden = collapsed; });
+    if (tools.classList.contains('ink-floating')) tools.style.width = '';
+    e.currentTarget.textContent = collapsed ? '展開工具' : '收合';
+    e.currentTarget.setAttribute('aria-expanded', String(!collapsed));
+    if (collapsed) setMode('cursor');
+    keepToolbarVisible(); rememberToolbarPosition();
   });
-  document.getElementById('ink-collapse').addEventListener('click',e=>{
-    const collapsed=tools.classList.toggle('ink-collapsed');
-    [...tools.children].forEach(child=>{if(child!==e.currentTarget && child!==dragHandle)child.hidden=collapsed});
-    if(tools.classList.contains('ink-floating'))tools.style.width='';
-    e.currentTarget.textContent=collapsed?'展開工具':'收合';e.currentTarget.setAttribute('aria-expanded',String(!collapsed));
-    if(collapsed)setMode('cursor');
-    keepToolbarVisible();rememberToolbarPosition();
+
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && mode !== 'cursor' && !editor) {
+      e.preventDefault(); document.getElementById(e.shiftKey ? 'ink-redo' : 'ink-undo').click();
+    }
+    if (e.key === 'Escape') {
+      if (mode === 'magnifier' || (mode !== 'cursor' && !editor)) setMode('cursor');
+    }
   });
-  document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&mode!=='cursor'&&!editor){e.preventDefault();document.getElementById(e.shiftKey?'ink-redo':'ink-undo').click()}if(e.key==='Escape'&&mode!=='cursor'&&!editor)setMode('cursor')});
+
   render();
 })();
 </script>
-<!-- teaching-annotation-toolbar:v2:behavior:end -->
+<!-- teaching-annotation-toolbar:v3:behavior:end -->
 </body>
 </html>
