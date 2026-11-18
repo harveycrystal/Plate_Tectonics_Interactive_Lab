@@ -125,8 +125,13 @@
             box-shadow: 0 0 10px rgba(249, 115, 22, 0.8);
             border: 2px solid #fff;
         }
+
+        /* Smooth Sidebar Transitions */
+        .sidebar-transition {
+            transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        }
     </style>
-<!-- teaching-annotation-toolbar:v3:style:begin -->
+<!-- teaching-annotation-toolbar:v4:style:begin -->
 <style>
 body { position: relative; }
 
@@ -139,37 +144,162 @@ body { position: relative; }
     #ink-layer.ink-magnifier { cursor:crosshair; }
     #ink-layer .ink-object { pointer-events:stroke; }
     #ink-layer .ink-text { pointer-events:all; }
-    #ink-tools { font-family:system-ui,"Noto Sans TC",sans-serif; position:fixed; z-index:9005; left:12px; right:12px; bottom:12px; max-width:1250px; margin:auto; display:flex; align-items:center; gap:5px; padding:7px; border:1px solid #bfdbfe; border-radius:16px; background:rgba(255,255,255,.97); box-shadow:0 12px 32px #0f172a30; overflow-x:auto; white-space:nowrap; scrollbar-width:thin; }
-    #ink-tools.ink-floating { right:auto; bottom:auto; margin:0; width:max-content; max-width:calc(100vw - 24px); }
-    #ink-tools #ink-drag { flex:none; width:32px; min-width:32px; padding:5px 0; cursor:grab; touch-action:none; user-select:none; color:#64748b; }
-    #ink-tools #ink-drag:active { cursor:grabbing; }
-    #ink-tools button, #ink-tools select { font-family:inherit; cursor:pointer; flex:none; min-height:36px; border:1px solid #e2e8f0; border-radius:10px; padding:5px 9px; font-size:13px; font-weight:700; color:#334155; background:#f8fafc; transition:background 0.15s, border-color 0.15s; }
-    #ink-tools button[aria-pressed="true"] { background:#1d4ed8; color:white; border-color:#1d4ed8; }
-    #ink-tools button:disabled { opacity:.4; }
-    #ink-tools button:focus-visible, #ink-tools select:focus-visible { outline:2px solid #2563eb; outline-offset:2px; }
     
-    /* 調色盤與顏色按鈕樣式修復（強制鎖定色彩，防止被 aria-pressed 藍色覆寫） */
-    #ink-palette { display:flex; align-items:center; gap:5px; flex:none; padding:3px 6px; border-radius:999px; background:#f1f5f9; border:1px solid #e2e8f0; }
-    #ink-tools button.ink-swatch { position:relative; width:32px; height:32px; min-height:32px; padding:0; border-radius:50%; background:var(--swatch) !important; border:2px solid transparent; transition:transform 0.12s, outline 0.12s; }
-    #ink-tools button.ink-swatch:hover { transform:scale(1.1); }
+    /* 方案 A 極簡精巧工具列 (寬度大幅精簡約 50%) */
+    #ink-tools { 
+        font-family:system-ui, -apple-system, "Noto Sans TC", sans-serif; 
+        position:fixed; 
+        z-index:9005; 
+        left:50%; 
+        transform:translateX(-50%); 
+        bottom:12px; 
+        width:max-content; 
+        max-width:calc(100vw - 20px); 
+        display:flex; 
+        align-items:center; 
+        gap:4px; 
+        padding:5px 7px; 
+        border:1px solid #bfdbfe; 
+        border-radius:14px; 
+        background:rgba(255,255,255,.98); 
+        box-shadow:0 10px 28px rgba(15,23,42,0.22); 
+        overflow-x:auto; 
+        white-space:nowrap; 
+        scrollbar-width:thin; 
+    }
+    #ink-tools.ink-floating { 
+        left:auto; 
+        bottom:auto; 
+        transform:none; 
+        margin:0; 
+    }
+    #ink-tools #ink-drag { 
+        flex:none; 
+        width:24px; 
+        min-width:24px; 
+        padding:4px 0; 
+        cursor:grab; 
+        touch-action:none; 
+        user-select:none; 
+        color:#64748b; 
+        font-size:15px; 
+    }
+    #ink-tools #ink-drag:active { cursor:grabbing; }
+    
+    /* 極簡方形圖標按鈕 */
+    #ink-tools button, #ink-tools select { 
+        font-family:inherit; 
+        cursor:pointer; 
+        flex:none; 
+        min-height:34px; 
+        min-width:34px; 
+        border:1px solid #e2e8f0; 
+        border-radius:9px; 
+        padding:4px 6px; 
+        font-size:14px; 
+        font-weight:700; 
+        color:#334155; 
+        background:#f8fafc; 
+        display:inline-flex; 
+        align-items:center; 
+        justify-content:center; 
+        transition:background 0.15s, border-color 0.15s, transform 0.1s; 
+    }
+    #ink-tools button:hover, #ink-tools select:hover { background:#f1f5f9; }
+    #ink-tools button[aria-pressed="true"] { background:#1d4ed8; color:white; border-color:#1d4ed8; }
+    #ink-tools button:disabled { opacity:.35; cursor:not-allowed; }
+    #ink-tools button:focus-visible, #ink-tools select:focus-visible { outline:2px solid #2563eb; outline-offset:2px; }
+
+    /* 緊湊圖形下拉選單 */
+    #ink-tools select#ink-shape { 
+        width:42px; 
+        min-width:42px; 
+        padding:2px; 
+        text-align:center; 
+        font-size:13px; 
+    }
+    
+    /* 5色調色盤 (24px 精巧色塊) */
+    #ink-palette { 
+        display:flex; 
+        align-items:center; 
+        gap:4px; 
+        flex:none; 
+        padding:3px 5px; 
+        border-radius:999px; 
+        background:#f1f5f9; 
+        border:1px solid #e2e8f0; 
+    }
+    #ink-tools button.ink-swatch { 
+        position:relative; 
+        width:24px; 
+        height:24px; 
+        min-height:24px; 
+        min-width:24px; 
+        padding:0; 
+        border-radius:50%; 
+        background:var(--swatch) !important; 
+        border:2px solid transparent; 
+        transition:transform 0.12s, outline 0.12s; 
+    }
+    #ink-tools button.ink-swatch:hover { transform:scale(1.15); }
     #ink-tools button.ink-swatch[data-color="#ffffff"] { border:1.5px solid #94a3b8 !important; }
-    #ink-tools button.ink-swatch[aria-pressed="true"] { background:var(--swatch) !important; color:transparent !important; transform:scale(1.18); border:2px solid white !important; outline:3px solid #0f172a !important; outline-offset:1px; }
-    #ink-tools button.ink-swatch[data-color="#ffffff"][aria-pressed="true"] { border:2px solid #94a3b8 !important; outline:3px solid #0f172a !important; }
-    #ink-tools button.ink-swatch:focus-visible { outline:3px solid #2563eb; }
+    #ink-tools button.ink-swatch[aria-pressed="true"] { 
+        background:var(--swatch) !important; 
+        color:transparent !important; 
+        transform:scale(1.22); 
+        border:2px solid white !important; 
+        outline:2.5px solid #0f172a !important; 
+        outline-offset:1px; 
+    }
+    #ink-tools button.ink-swatch[data-color="#ffffff"][aria-pressed="true"] { 
+        border:2px solid #94a3b8 !important; 
+        outline:2.5px solid #0f172a !important; 
+    }
+    #ink-tools button.ink-swatch:focus-visible { outline:2.5px solid #2563eb; }
 
-    #ink-tools #ink-number-reset { border-radius:0 10px 10px 0; margin-left:-5px; color:#9a3412; background:#fff7ed; border-color:#fed7aa; padding-inline:9px; }
-    #ink-tools [data-ink="number"] { display:inline-flex; align-items:center; gap:5px; border-radius:10px 0 0 10px; color:#fff; background:#1e293b; border-color:#1e293b; }
+    /* 緊湊數字標籤與重設組 */
+    #ink-tools [data-ink="number"] { 
+        display:inline-flex; 
+        align-items:center; 
+        gap:3px; 
+        border-radius:9px 0 0 9px; 
+        color:#fff; 
+        background:#1e293b; 
+        border-color:#1e293b; 
+        padding:4px 6px; 
+        min-width:38px; 
+    }
     #ink-tools [data-ink="number"][aria-pressed="true"] { background:#1e293b; border-color:#fbbf24; }
-    #ink-next-number { display:inline-grid; place-items:center; width:23px; height:23px; border-radius:50%; background:#ef4038; color:#fff; font-size:15px; line-height:1; font-weight:700; transition:background 0.15s, color 0.15s; }
-    #ink-layer.ink-pen { cursor:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20d%3D%22M4%2028l5-1%2019-19-4-4L5%2023z%22%20fill%3D%22%23fff%22%20stroke%3D%22%23152238%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M5%2023l4%204-5%201z%22%20fill%3D%22%23ef4444%22%20stroke%3D%22%23152238%22%20stroke-width%3D%221.5%22%2F%3E%3Cpath%20d%3D%22M21%207l4%204%22%20stroke%3D%22%23152238%22%20stroke-width%3D%222%22%2F%3E%3C%2Fsvg%3E") 4 28, crosshair; }
-    #ink-layer.ink-highlight { cursor:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20d%3D%22M5%2025l5%204%2018-18-5-5z%22%20fill%3D%22%23ffe34f%22%20stroke%3D%22%23152238%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M5%2025l5%204-6%201z%22%20fill%3D%22%23f4c430%22%20stroke%3D%22%23152238%22%20stroke-width%3D%221.5%22%2F%3E%3Cpath%20d%3D%22M22%206l6%205%22%20stroke%3D%22%23152238%22%20stroke-width%3D%222%22%2F%3E%3C%2Fsvg%3E") 4 28, crosshair; }
+    #ink-next-number { 
+        display:inline-grid; 
+        place-items:center; 
+        width:19px; 
+        height:19px; 
+        border-radius:50%; 
+        background:#ef4038; 
+        color:#fff; 
+        font-size:12px; 
+        line-height:1; 
+        font-weight:800; 
+        transition:background 0.15s, color 0.15s; 
+    }
+    #ink-tools #ink-number-reset { 
+        border-radius:0 9px 9px 0; 
+        margin-left:-5px; 
+        color:#9a3412; 
+        background:#fff7ed; 
+        border-color:#fed7aa; 
+        padding:4px 6px; 
+        min-width:26px; 
+        font-size:12px; 
+    }
 
-    #ink-tools input[type="range"] { width:67px; flex:none; accent-color:#2563eb; }
-    #ink-tools .ink-divider { height:26px; width:1px; flex:none; background:#cbd5e1; margin:0 3px; }
-    #ink-tools.ink-collapsed { right:auto; max-width:none; }
+    #ink-tools input[type="range"] { width:52px; flex:none; accent-color:#2563eb; cursor:pointer; }
+    #ink-tools .ink-divider { height:22px; width:1px; flex:none; background:#cbd5e1; margin:0 2px; }
+    #ink-tools.ink-collapsed { transform:none; right:auto; max-width:none; }
     #ink-text-editor { position:fixed; z-index:9010; min-width:150px; min-height:48px; font:700 20px "Noto Sans TC",sans-serif; padding:5px; border:2px solid #2563eb; background:white; resize:both; box-shadow:0 8px 24px rgba(0,0,0,0.25); }
     #ink-tools [hidden] { display:none !important; }
-    #ink-tools label[for="ink-size"] { font-size:12px; font-weight:700; color:#475569; }
 
     /* 局部範圍放大鏡樣式 */
     #ink-magnifier-lens {
@@ -223,75 +353,191 @@ body { position: relative; }
         letter-spacing:0.5px;
     }
 </style>
-<!-- teaching-annotation-toolbar:v3:style:end -->
+<!-- teaching-annotation-toolbar:v4:style:end -->
 </head>
-<body class="min-h-screen flex flex-col select-none">
+<body class="h-screen flex flex-col select-none overflow-hidden">
 
     <!-- Top Navigation Header -->
-    <header class="glass-panel sticky top-0 z-40 px-4 py-2.5 border-b border-slate-800/80 shadow-lg">
-        <div class="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-3">
+    <header class="glass-panel shrink-0 z-40 px-3 md:px-4 py-2 border-b border-slate-800/90 shadow-lg">
+        <div class="w-full mx-auto flex flex-wrap items-center justify-between gap-2">
             <!-- Brand & Title -->
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 via-red-600 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
-                    <i class="fa-solid fa-earth-asia text-white text-xl animate-spin" style="animation-duration: 24s;"></i>
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 via-red-600 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
+                    <i class="fa-solid fa-earth-asia text-white text-lg animate-spin" style="animation-duration: 24s;"></i>
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h1 class="text-lg md:text-xl font-black tracking-tight bg-gradient-to-r from-white via-orange-100 to-amber-300 bg-clip-text text-transparent">
+                        <h1 class="text-base md:text-lg font-black tracking-tight bg-gradient-to-r from-white via-orange-100 to-amber-300 bg-clip-text text-transparent">
                             地殼的脈動：3D 板塊構造互動實驗室
                         </h1>
-                        <span class="hidden sm:inline-block px-2 py-0.5 text-[11px] font-bold bg-orange-500/20 text-orange-300 border border-orange-500/40 rounded-full">
+                        <span class="hidden xl:inline-block px-2 py-0.5 text-[11px] font-bold bg-orange-500/20 text-orange-300 border border-orange-500/40 rounded-full">
                             國三地球科學・108課綱
                         </span>
                     </div>
-                    <p class="text-xs text-slate-400 flex items-center gap-2">
+                    <p class="text-[11px] text-slate-400 flex items-center gap-2">
                         <span><i class="fa-solid fa-chalkboard-user text-amber-400 mr-1"></i>作者：大大教學</span>
                         <span class="text-slate-600">|</span>
-                        <span class="hidden md:inline text-slate-400">支援 360° 旋轉、地殼透視與抽問模式</span>
+                        <span class="hidden sm:inline text-slate-400">三欄式獨立視窗・支援面板自由收合</span>
                     </p>
                 </div>
             </div>
 
             <!-- 4 Main Module Navigation Tabs -->
-            <nav class="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 overflow-x-auto max-w-full">
-                <button onclick="switchModule('module1')" id="tab-module1" class="module-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap">
+            <nav class="flex items-center gap-1 bg-slate-900/95 p-1 rounded-xl border border-slate-800 overflow-x-auto max-w-full">
+                <button onclick="switchModule('module1')" id="tab-module1" class="module-tab px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap">
                     <i class="fa-solid fa-layer-group"></i>
                     <span>1. 理論與岩石圈</span>
                 </button>
-                <button onclick="switchModule('module2')" id="tab-module2" class="module-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap">
+                <button onclick="switchModule('module2')" id="tab-module2" class="module-tab px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap">
                     <i class="fa-solid fa-cubes-stacked"></i>
                     <span>2. 板塊交界實驗室</span>
                 </button>
-                <button onclick="switchModule('module3')" id="tab-module3" class="module-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap">
+                <button onclick="switchModule('module3')" id="tab-module3" class="module-tab px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap">
                     <i class="fa-solid fa-mountain-sun"></i>
                     <span>3. 臺灣板塊構造</span>
                 </button>
-                <button onclick="switchModule('module4')" id="tab-module4" class="module-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap">
+                <button onclick="switchModule('module4')" id="tab-module4" class="module-tab px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap">
                     <i class="fa-solid fa-trophy text-amber-400"></i>
                     <span>4. 會考隨堂挑戰</span>
                     <span id="quiz-score-badge" class="ml-1 px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded text-[11px] font-mono">0/100</span>
                 </button>
             </nav>
 
-            <!-- Quick Summary Table Trigger -->
-            <div class="flex items-center gap-2">
-                <button onclick="toggleSummaryModal(true)" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold flex items-center gap-1.5 transition shadow">
-                    <i class="fa-solid fa-table-list text-cyan-400"></i>
-                    <span class="hidden sm:inline">會考重點總整理表</span>
+            <!-- Panel Visibility & Summary Table Controls -->
+            <div class="flex items-center gap-1.5">
+                <button onclick="toggleLeftSidebar()" id="top-btn-left-panel" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5 transition" title="顯示或隱藏左側 3D 場景選單">
+                    <i class="fa-solid fa-bars-staggered"></i>
+                    <span class="hidden md:inline" id="top-left-panel-text">左側選單：顯示</span>
+                </button>
+                <button onclick="toggleRightDrawer()" id="top-btn-right-panel" class="px-2.5 py-1.5 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 border border-orange-500/50 text-xs font-bold flex items-center gap-1.5 transition" title="顯示或隱藏右側教學知識面板，放大 3D 視野">
+                    <i class="fa-solid fa-table-columns"></i>
+                    <span id="top-right-panel-text">右側教學區：顯示</span>
+                </button>
+                <button onclick="toggleSummaryModal(true)" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold flex items-center gap-1.5 transition shadow" title="打開三大板塊交界總整理表">
+                    <i class="fa-solid fa-table-list text-amber-400"></i>
+                    <span class="hidden xl:inline">總整理表</span>
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- Main Split Workspace -->
-    <main class="flex-1 max-w-[1600px] w-full mx-auto p-3 md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+    <!-- Main 3-Column Independent Flex Workspace -->
+    <main class="flex-1 w-full flex overflow-hidden relative bg-slate-950">
 
-        <!-- Left / Center: 3D Interactive Stage (7 or 8 cols on desktop) -->
-        <section class="lg:col-span-7 xl:col-span-8 flex flex-col rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 relative min-h-[440px] lg:min-h-[640px] shadow-2xl">
-            
-            <!-- Top Floating HUD inside 3D Viewport -->
-            <div class="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-                <!-- Current Scene Title Pill -->
+        <!-- ==================== COLUMN 1: INDEPENDENT LEFT SIDEBAR ==================== -->
+        <aside id="left-sidebar" class="sidebar-transition w-[235px] shrink-0 bg-slate-900/95 border-r border-slate-700/80 flex flex-col justify-between z-30 overflow-y-auto overflow-x-hidden select-none shadow-xl">
+            <div class="p-3 space-y-4">
+                <!-- Section 1: 3D Scene Switcher -->
+                <div>
+                    <div class="flex items-center justify-between px-1 mb-2">
+                        <span class="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-cubes text-orange-400"></i>
+                            <span>3D 場景快速切換</span>
+                        </span>
+                        <button onclick="toggleLeftSidebar()" class="text-slate-400 hover:text-white text-xs px-1.5 py-0.5 rounded hover:bg-slate-800 transition" title="收合左側選單">
+                            <i class="fa-solid fa-angles-left"></i>
+                        </button>
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <button onclick="loadScene('lithosphere')" id="scene-btn-lithosphere" class="scene-select-btn w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shrink-0 shadow-[0_0_8px_#22d3ee]"></span>
+                            <div class="truncate">
+                                <div>岩石圈 vs 軟流圈</div>
+                                <div class="text-[10px] font-normal text-slate-400 truncate">大陸與海洋地殼比較</div>
+                            </div>
+                        </button>
+                        <button onclick="loadScene('divergent')" id="scene-btn-divergent" class="scene-select-btn w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-orange-500 shrink-0 shadow-[0_0_8px_#f97316]"></span>
+                            <div class="truncate">
+                                <div>張裂性交界 (中洋脊)</div>
+                                <div class="text-[10px] font-normal text-slate-400 truncate">拉張力・新海洋地殼生成</div>
+                            </div>
+                        </button>
+                        <button onclick="loadScene('convergent_oc')" id="scene-btn-convergent_oc" class="scene-select-btn w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0 shadow-[0_0_8px_#f43f5e]"></span>
+                            <div class="truncate">
+                                <div>聚合性：海陸隱沒</div>
+                                <div class="text-[10px] font-normal text-slate-400 truncate">海溝・安山岩火山島弧</div>
+                            </div>
+                        </button>
+                        <button onclick="loadScene('convergent_cc')" id="scene-btn-convergent_cc" class="scene-select-btn w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-purple-400 shrink-0 shadow-[0_0_8px_#c084fc]"></span>
+                            <div class="truncate">
+                                <div>聚合性：陸陸造山</div>
+                                <div class="text-[10px] font-normal text-slate-400 truncate">喜馬拉雅高大褶皺山脈</div>
+                            </div>
+                        </button>
+                        <button onclick="loadScene('transform')" id="scene-btn-transform" class="scene-select-btn w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_#34d399]"></span>
+                            <div class="truncate">
+                                <div>錯動性交界 (轉形斷層)</div>
+                                <div class="text-[10px] font-normal text-slate-400 truncate">水平剪力錯移・無火山</div>
+                            </div>
+                        </button>
+                        <button onclick="loadScene('taiwan')" id="scene-btn-taiwan" class="scene-select-btn w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0 shadow-[0_0_8px_#fbbf24]"></span>
+                            <div class="truncate">
+                                <div>臺灣板塊碰撞模型</div>
+                                <div class="text-[10px] font-normal text-slate-400 truncate">歐亞 vs 菲律賓海板塊</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Section 2: 3D Visual Tools & Classroom Questioning Mode -->
+                <div class="pt-3 border-t border-slate-800">
+                    <span class="text-[11px] font-black text-slate-400 uppercase tracking-wider px-1 block mb-2">
+                        <i class="fa-solid fa-sliders text-cyan-400 mr-1"></i>課堂互動與透視工具
+                    </span>
+                    <div class="flex flex-col gap-1.5">
+                        <button onclick="toggleLabels()" id="btn-toggle-labels" class="w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between bg-slate-800/90 hover:bg-slate-800 transition border border-emerald-500/50 text-emerald-300" title="關閉標籤可用於課堂抽問學生！">
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-tags w-4 text-center"></i>地質標籤</span>
+                            <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-[10px]">開啟</span>
+                        </button>
+                        <button onclick="toggleXRay()" id="btn-toggle-xray" class="w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between bg-slate-800/90 hover:bg-slate-800 transition border border-slate-700 text-slate-300" title="半透明化地殼以觀察內部震源與岩漿">
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-eye w-4 text-center"></i>剖面透視</span>
+                            <span class="px-1.5 py-0.5 rounded bg-slate-700 text-[10px]">關閉</span>
+                        </button>
+                        <button onclick="toggleQuakes()" id="btn-toggle-quakes" class="w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between bg-slate-800/90 hover:bg-slate-800 transition border border-amber-500/50 text-amber-300" title="顯示淺、中、深源地震震源分布">
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-house-crack w-4 text-center"></i>震源閃光</span>
+                            <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-[10px]">開啟</span>
+                        </button>
+                        <button onclick="resetCamera()" class="w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition mt-1">
+                            <i class="fa-solid fa-rotate-left text-orange-400"></i>
+                            <span>重置 3D 最佳視角</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Tip inside Left Sidebar -->
+            <div class="p-3 m-2 rounded-xl bg-slate-950/90 border border-slate-800/80 text-[11px] text-slate-400 space-y-1">
+                <div class="font-bold text-slate-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-hand-pointer text-orange-400"></i>
+                    <span>3D 滑鼠/觸控操作</span>
+                </div>
+                <div>• 左鍵拖曳：360° 旋轉剖面</div>
+                <div>• 滾輪縮放：拉近觀察隱沒帶</div>
+                <div>• 右鍵拖曳：平移模型位置</div>
+            </div>
+        </aside>
+
+        <!-- ==================== COLUMN 2: CENTER 3D INTERACTIVE STAGE ==================== -->
+        <section id="center-stage" class="flex-1 flex flex-col relative bg-slate-950 overflow-hidden min-w-0">
+
+            <!-- Left Edge Quick Expand/Collapse Handle -->
+            <button onclick="toggleLeftSidebar()" id="edge-btn-left" class="absolute left-0 top-1/2 -translate-y-1/2 z-30 bg-slate-900/90 hover:bg-orange-500 text-slate-300 hover:text-white border border-l-0 border-slate-700 rounded-r-xl py-3 px-1.5 shadow-xl transition flex flex-col items-center gap-1" title="切換左側選單">
+                <i class="fa-solid fa-chevron-left text-[11px]" id="edge-icon-left"></i>
+            </button>
+
+            <!-- Right Edge Quick Expand/Collapse Handle -->
+            <button onclick="toggleRightDrawer()" id="edge-btn-right" class="absolute right-0 top-1/2 -translate-y-1/2 z-30 bg-slate-900/90 hover:bg-orange-500 text-slate-300 hover:text-white border border-r-0 border-slate-700 rounded-l-xl py-3 px-1.5 shadow-xl transition flex flex-col items-center gap-1" title="切換右側知識與測驗面板">
+                <i class="fa-solid fa-chevron-right text-[11px]" id="edge-icon-right"></i>
+                <span class="text-[10px] font-bold [writing-mode:vertical-rl] tracking-widest py-1">教學面板</span>
+            </button>
+
+            <!-- Top Floating Scene Title Banner (Strictly inside Center 3D Stage) -->
+            <div class="absolute top-3 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
                 <div class="glass-panel px-3.5 py-2 rounded-xl pointer-events-auto flex items-center gap-3 shadow-lg border-l-4 border-l-orange-500">
                     <div>
                         <div class="flex items-center gap-2">
@@ -304,55 +550,11 @@ body { position: relative; }
                     </div>
                 </div>
 
-                <!-- Right Camera & Display Quick Tools -->
-                <div class="flex flex-wrap items-center gap-1.5 pointer-events-auto">
-                    <button onclick="toggleLabels()" id="btn-toggle-labels" class="glass-panel px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 transition border border-emerald-500/50 text-emerald-300" title="關閉標籤可用於課堂抽問學生！">
-                        <i class="fa-solid fa-tags"></i>
-                        <span>地質標籤：開</span>
-                    </button>
-                    <button onclick="toggleXRay()" id="btn-toggle-xray" class="glass-panel px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 transition text-slate-300" title="半透明化地殼以觀察內部震源與岩漿">
-                        <i class="fa-solid fa-eye"></i>
-                        <span>剖面透視：關</span>
-                    </button>
-                    <button onclick="toggleQuakes()" id="btn-toggle-quakes" class="glass-panel px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 transition border border-amber-500/50 text-amber-300" title="顯示淺、中、深源地震震源分布">
-                        <i class="fa-solid fa-house-crack"></i>
-                        <span>震源閃光：開</span>
-                    </button>
-                    <button onclick="resetCamera()" class="glass-panel px-2.5 py-1.5 rounded-xl text-xs font-bold hover:bg-slate-800 text-slate-300 transition" title="重置 3D 視角">
-                        <i class="fa-solid fa-rotate-left"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Quick Scene Switcher Bar (Always Accessible at Top-Left under HUD when needed) -->
-            <div class="absolute top-20 left-3 z-20 flex flex-col gap-1.5 pointer-events-auto">
-                <div class="glass-panel p-1.5 rounded-xl flex flex-col gap-1 shadow-lg">
-                    <span class="text-[10px] font-bold text-slate-400 px-2 pt-0.5">3D 模型快速切換</span>
-                    <button onclick="loadScene('lithosphere')" id="scene-btn-lithosphere" class="scene-select-btn text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
-                        <span>岩石圈 vs 軟流圈</span>
-                    </button>
-                    <button onclick="loadScene('divergent')" id="scene-btn-divergent" class="scene-select-btn text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-orange-500"></span>
-                        <span>張裂性交界 (中洋脊)</span>
-                    </button>
-                    <button onclick="loadScene('convergent_oc')" id="scene-btn-convergent_oc" class="scene-select-btn text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-                        <span>聚合性：海陸隱沒</span>
-                    </button>
-                    <button onclick="loadScene('convergent_cc')" id="scene-btn-convergent_cc" class="scene-select-btn text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-purple-400"></span>
-                        <span>聚合性：陸陸造山</span>
-                    </button>
-                    <button onclick="loadScene('transform')" id="scene-btn-transform" class="scene-select-btn text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                        <span>錯動性交界 (轉形斷層)</span>
-                    </button>
-                    <button onclick="loadScene('taiwan')" id="scene-btn-taiwan" class="scene-select-btn text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-                        <span>臺灣板塊碰撞模型</span>
-                    </button>
-                </div>
+                <!-- Floating Indicator when Right Panel is Collapsed -->
+                <button onclick="toggleRightDrawer()" id="floating-expand-right-btn" class="hidden pointer-events-auto glass-panel px-3.5 py-2 rounded-xl text-xs font-bold text-orange-300 hover:bg-slate-800 border border-orange-500/50 shadow-lg items-center gap-2 transition animate-pulse">
+                    <i class="fa-solid fa-book-open-reader"></i>
+                    <span>展開右側課文與隨堂測驗</span>
+                </button>
             </div>
 
             <!-- 3D WebGL Canvas Container -->
@@ -361,8 +563,8 @@ body { position: relative; }
                 <div id="labels-container" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
             </div>
 
-            <!-- Bottom Floating Control Bar inside 3D Viewport -->
-            <div class="absolute bottom-3 left-3 right-3 z-20 flex flex-col gap-2 pointer-events-none">
+            <!-- Bottom Floating Control Bar inside Center 3D Stage -->
+            <div class="absolute bottom-3 left-4 right-4 z-20 flex flex-col gap-2 pointer-events-none max-w-4xl mx-auto">
                 <!-- Interactive Geological Evolution / Collision Timeline Bar -->
                 <div class="glass-panel px-3.5 py-2 rounded-xl pointer-events-auto flex flex-wrap items-center justify-between gap-3 border border-orange-500/40 shadow-lg">
                     <div class="flex items-center gap-2">
@@ -379,7 +581,7 @@ body { position: relative; }
                     <div class="flex-1 min-w-[180px] flex flex-col gap-1">
                         <div class="flex items-center justify-between text-[11px] font-bold">
                             <span id="phase-status-text" class="text-amber-300 flex items-center gap-1.5">
-                                <i class="fa-solid fa-Forward-fast text-orange-400"></i>
+                                <i class="fa-solid fa-forward-fast text-orange-400"></i>
                                 <span>板塊動態演化中：兩側板塊接近與碰撞隱沒</span>
                             </span>
                             <span id="cycle-percent-label" class="text-orange-400 font-mono">0%</span>
@@ -387,15 +589,12 @@ body { position: relative; }
                         <input type="range" id="cycle-slider" min="0" max="100" step="1" value="0" oninput="scrubCycle(this.value)" class="w-full">
                     </div>
 
-                    <!-- Speed Multiplier -->
-                    <div class="flex items-center gap-2 border-l border-slate-700 pl-3">
-                        <div class="flex flex-col">
-                            <div class="flex items-center justify-between text-[11px] font-bold gap-2">
-                                <span class="text-slate-300">運動速率</span>
-                                <span id="speed-label" class="text-orange-400 font-mono">1.2x</span>
-                            </div>
-                            <input type="range" id="speed-slider" min="0.2" max="3" step="0.2" value="1.2" oninput="updateSpeed(this.value)" class="w-20 md:w-24">
-                        </div>
+                    <!-- Speed Multiplier Buttons -->
+                    <div class="flex items-center gap-1.5 border-l border-slate-700 pl-3">
+                        <span class="text-[11px] text-slate-400 hidden sm:inline mr-1">速率</span>
+                        <button onclick="updateSpeed(0.5)" id="speed-btn-0.5" class="speed-preset-btn px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-mono text-slate-300 transition">0.5x</button>
+                        <button onclick="updateSpeed(1.2)" id="speed-btn-1.2" class="speed-preset-btn px-2 py-1 rounded bg-orange-500 text-[11px] font-mono text-white font-bold transition">1x</button>
+                        <button onclick="updateSpeed(2.4)" id="speed-btn-2.4" class="speed-preset-btn px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-mono text-slate-300 transition">2x</button>
                     </div>
                 </div>
 
@@ -415,13 +614,27 @@ body { position: relative; }
                             <span class="text-slate-300">深源地震 (>300km)</span>
                         </div>
                     </div>
-                    <span class="hidden sm:inline text-slate-400"><i class="fa-solid fa-computer-mouse mr-1 text-orange-400"></i>左鍵旋轉・滾輪縮放・右鍵平移</span>
+                    <span class="hidden md:inline text-slate-400">可點擊右側邊緣「教學面板」按鈕隨時隱藏或展開知識卡片</span>
                 </div>
             </div>
         </section>
 
-        <!-- Right: Interactive Learning & Control Panel (5 or 4 cols on desktop) -->
-        <aside class="lg:col-span-5 xl:col-span-4 flex flex-col gap-3 max-h-[820px] overflow-y-auto pr-1">
+        <!-- ==================== COLUMN 3: COLLAPSIBLE RIGHT KNOWLEDGE & QUIZ DRAWER ==================== -->
+        <aside id="right-drawer" class="sidebar-transition w-full sm:w-[390px] xl:w-[430px] shrink-0 bg-slate-900/95 border-l border-slate-700/80 flex flex-col z-30 overflow-hidden shadow-2xl">
+            <!-- Drawer Top Header with Quick Hide Button -->
+            <div class="px-4 py-2.5 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2 text-xs font-bold text-slate-300">
+                    <i class="fa-solid fa-graduation-cap text-orange-400"></i>
+                    <span>互動教學講義與隨堂診斷</span>
+                </div>
+                <button onclick="toggleRightDrawer()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border border-slate-700 hover:border-rose-500/40 text-xs font-bold flex items-center gap-1.5 transition" title="隱藏右側面板以放大中央 3D 模擬畫面">
+                    <span>隱藏面板</span>
+                    <i class="fa-solid fa-angles-right"></i>
+                </button>
+            </div>
+
+            <!-- Scrollable Content Area inside Right Drawer -->
+            <div class="p-3.5 flex-1 overflow-y-auto flex flex-col gap-3">
 
             <!-- ==================== MODULE 1: 理論基石與岩石圈 ==================== -->
             <div id="panel-module1" class="module-panel flex flex-col gap-3">
@@ -674,12 +887,13 @@ body { position: relative; }
                 </div>
             </div>
 
+            </div><!-- End Scrollable Content Area -->
         </aside>
     </main>
 
     <!-- Footer -->
-    <footer class="mt-auto border-t border-slate-800/80 bg-slate-950 py-2.5 px-4 text-center text-xs text-slate-400">
-        <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+    <footer class="shrink-0 border-t border-slate-800/80 bg-slate-950 py-1.5 px-4 text-center text-xs text-slate-400">
+        <div class="w-full mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
             <div>
                 <span class="font-bold text-slate-300">《地殼的脈動：3D 板塊構造互動實驗室》</span>
                 <span class="mx-2 text-slate-600">|</span>
@@ -953,6 +1167,8 @@ body { position: relative; }
         let isXRay = false;
         let showQuakes = true;
         let cycleProgress = 0; // 0.0 to 1.0 looping tectonic collision progression
+        let isLeftSidebarOpen = true;
+        let isRightDrawerOpen = true;
 
         // Quiz state
         let currentQuizIndex = 0;
@@ -1038,6 +1254,14 @@ body { position: relative; }
             scene.add(quakeGroup);
 
             window.addEventListener('resize', onWindowResize);
+
+            // ResizeObserver ensures automatic re-centering & resizing when sidebars collapse/expand
+            if (window.ResizeObserver) {
+                const resizeObserver = new ResizeObserver(() => {
+                    onWindowResize();
+                });
+                resizeObserver.observe(container);
+            }
         }
 
         function onWindowResize() {
@@ -1045,9 +1269,76 @@ body { position: relative; }
             if (!container || !renderer || !camera) return;
             const w = container.clientWidth;
             const h = container.clientHeight;
+            if (w === 0 || h === 0) return;
             camera.aspect = w / h;
             camera.updateProjectionMatrix();
             renderer.setSize(w, h);
+            update3DLabels();
+        }
+
+        // Sidebar Collapse / Expand Controllers
+        function toggleLeftSidebar() {
+            isLeftSidebarOpen = !isLeftSidebarOpen;
+            const leftSidebar = document.getElementById('left-sidebar');
+            const edgeIcon = document.getElementById('edge-icon-left');
+            const topBtn = document.getElementById('top-btn-left-panel');
+            const topText = document.getElementById('top-left-panel-text');
+
+            if (isLeftSidebarOpen) {
+                leftSidebar.style.width = '235px';
+                leftSidebar.style.opacity = '1';
+                leftSidebar.classList.add('border-r');
+                edgeIcon.className = 'fa-solid fa-chevron-left text-[11px]';
+                topBtn.className = 'px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5 transition';
+                if (topText) topText.textContent = '左側選單：顯示';
+            } else {
+                leftSidebar.style.width = '0px';
+                leftSidebar.style.opacity = '0';
+                leftSidebar.classList.remove('border-r');
+                edgeIcon.className = 'fa-solid fa-chevron-right text-[11px]';
+                topBtn.className = 'px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-700 text-xs font-bold flex items-center gap-1.5 transition';
+                if (topText) topText.textContent = '左側選單：隱藏';
+            }
+        }
+
+        function toggleRightDrawer(forceState) {
+            if (typeof forceState === 'boolean') {
+                isRightDrawerOpen = forceState;
+            } else {
+                isRightDrawerOpen = !isRightDrawerOpen;
+            }
+
+            const rightDrawer = document.getElementById('right-drawer');
+            const edgeIcon = document.getElementById('edge-icon-right');
+            const topBtn = document.getElementById('top-btn-right-panel');
+            const topText = document.getElementById('top-right-panel-text');
+            const floatingExpandBtn = document.getElementById('floating-expand-right-btn');
+
+            if (isRightDrawerOpen) {
+                rightDrawer.style.width = '';
+                rightDrawer.style.opacity = '1';
+                rightDrawer.classList.remove('!w-0', 'border-none');
+                rightDrawer.classList.add('border-l');
+                edgeIcon.className = 'fa-solid fa-chevron-right text-[11px]';
+                topBtn.className = 'px-2.5 py-1.5 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 border border-orange-500/50 text-xs font-bold flex items-center gap-1.5 transition';
+                if (topText) topText.textContent = '右側教學區：顯示';
+                if (floatingExpandBtn) {
+                    floatingExpandBtn.classList.add('hidden');
+                    floatingExpandBtn.classList.remove('flex');
+                }
+            } else {
+                rightDrawer.style.width = '0px';
+                rightDrawer.style.opacity = '0';
+                rightDrawer.classList.add('!w-0', 'border-none');
+                rightDrawer.classList.remove('border-l');
+                edgeIcon.className = 'fa-solid fa-chevron-left text-[11px]';
+                topBtn.className = 'px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-700 text-xs font-bold flex items-center gap-1.5 transition';
+                if (topText) topText.textContent = '右側教學區：隱藏';
+                if (floatingExpandBtn) {
+                    floatingExpandBtn.classList.remove('hidden');
+                    floatingExpandBtn.classList.add('flex');
+                }
+            }
         }
 
         // ============================================================================
@@ -2054,11 +2345,11 @@ body { position: relative; }
 
             // Update Quick Scene Buttons Highlight
             document.querySelectorAll('.scene-select-btn').forEach(btn => {
-                btn.className = 'scene-select-btn text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-300 hover:bg-slate-800/80';
+                btn.className = 'scene-select-btn w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2.5 text-slate-300 hover:bg-slate-800/90 border border-transparent';
             });
             const activeQuickBtn = document.getElementById(`scene-btn-${sceneKey}`);
             if (activeQuickBtn) {
-                activeQuickBtn.className = 'scene-select-btn text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-orange-500/20 text-orange-300 border border-orange-500/40';
+                activeQuickBtn.className = 'scene-select-btn w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2.5 bg-orange-500/20 text-orange-300 border border-orange-500/50 shadow-md';
             }
 
             // Update Module 2 Boundary Buttons & Detail Card
@@ -2099,6 +2390,10 @@ body { position: relative; }
 
         function switchModule(modId) {
             currentModule = modId;
+            // Ensure right drawer is visible when user clicks a module tab
+            if (!isRightDrawerOpen) {
+                toggleRightDrawer(true);
+            }
             // Toggle Panels
             ['module1', 'module2', 'module3', 'module4'].forEach(id => {
                 const panel = document.getElementById(`panel-${id}`);
@@ -2189,10 +2484,13 @@ body { position: relative; }
         function toggleLabels() {
             showLabels = !showLabels;
             const btn = document.getElementById('btn-toggle-labels');
-            btn.innerHTML = `<i class="fa-solid fa-tags"></i><span>地質標籤：${showLabels ? '開' : '關'}</span>`;
+            btn.innerHTML = `
+                <span class="flex items-center gap-2"><i class="fa-solid fa-tags w-4 text-center"></i>地質標籤</span>
+                <span class="px-1.5 py-0.5 rounded ${showLabels ? 'bg-emerald-500/20' : 'bg-slate-700'} text-[10px]">${showLabels ? '開啟' : '關閉'}</span>
+            `;
             btn.className = showLabels
-                ? 'glass-panel px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 transition border border-emerald-500/50 text-emerald-300'
-                : 'glass-panel px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 transition text-slate-400';
+                ? 'w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between bg-slate-800/90 hover:bg-slate-800 transition border border-emerald-500/50 text-emerald-300'
+                : 'w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between bg-slate-800/90 hover:bg-slate-800 transition border border-slate-700 text-slate-400';
 
             activeLabels.forEach(item => {
                 item.element.style.display = showLabels ? 'block' : 'none';
@@ -2202,10 +2500,13 @@ body { position: relative; }
         function toggleXRay() {
             isXRay = !isXRay;
             const btn = document.getElementById('btn-toggle-xray');
-            btn.innerHTML = `<i class="fa-solid fa-eye"></i><span>剖面透視：${isXRay ? '開' : '關'}</span>`;
+            btn.innerHTML = `
+                <span class="flex items-center gap-2"><i class="fa-solid fa-eye w-4 text-center"></i>剖面透視</span>
+                <span class="px-1.5 py-0.5 rounded ${isXRay ? 'bg-cyan-500/20' : 'bg-slate-700'} text-[10px]">${isXRay ? '開啟' : '關閉'}</span>
+            `;
             btn.className = isXRay
-                ? 'glass-panel px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 transition border border-cyan-400/60 text-cyan-300'
-                : 'glass-panel px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 transition text-slate-300';
+                ? 'w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between bg-slate-800/90 hover:bg-slate-800 transition border border-cyan-400/60 text-cyan-300'
+                : 'w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between bg-slate-800/90 hover:bg-slate-800 transition border border-slate-700 text-slate-300';
 
             xrayMeshes.forEach(mesh => {
                 if (mesh.material) {
@@ -2219,10 +2520,13 @@ body { position: relative; }
             showQuakes = !showQuakes;
             quakeGroup.visible = showQuakes;
             const btn = document.getElementById('btn-toggle-quakes');
-            btn.innerHTML = `<i class="fa-solid fa-house-crack"></i><span>震源閃光：${showQuakes ? '開' : '關'}</span>`;
+            btn.innerHTML = `
+                <span class="flex items-center gap-2"><i class="fa-solid fa-house-crack w-4 text-center"></i>震源閃光</span>
+                <span class="px-1.5 py-0.5 rounded ${showQuakes ? 'bg-amber-500/20' : 'bg-slate-700'} text-[10px]">${showQuakes ? '開啟' : '關閉'}</span>
+            `;
             btn.className = showQuakes
-                ? 'glass-panel px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 transition border border-amber-500/50 text-amber-300'
-                : 'glass-panel px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 transition text-slate-400';
+                ? 'w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between bg-slate-800/90 hover:bg-slate-800 transition border border-amber-500/50 text-amber-300'
+                : 'w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between bg-slate-800/90 hover:bg-slate-800 transition border border-slate-700 text-slate-400';
         }
 
         function resetCamera() {
@@ -2233,23 +2537,27 @@ body { position: relative; }
 
         function updateSpeed(val) {
             animSpeed = parseFloat(val);
-            document.getElementById('speed-label').textContent = `${animSpeed.toFixed(1)}x`;
             isPaused = animSpeed === 0;
             document.getElementById('icon-play-pause').className = isPaused ? 'fa-solid fa-play text-xs' : 'fa-solid fa-pause text-xs';
+
+            // Update speed preset button highlights
+            [0.5, 1.2, 2.4].forEach(sp => {
+                const btn = document.getElementById(`speed-btn-${sp}`);
+                if (!btn) return;
+                if (Math.abs(animSpeed - sp) < 0.1 && !isPaused) {
+                    btn.className = 'speed-preset-btn px-2 py-1 rounded bg-orange-500 text-[11px] font-mono text-white font-bold transition';
+                } else {
+                    btn.className = 'speed-preset-btn px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-mono text-slate-300 transition';
+                }
+            });
         }
 
         function togglePause() {
             isPaused = !isPaused;
-            const slider = document.getElementById('speed-slider');
             if (isPaused) {
-                document.getElementById('speed-label').textContent = '暫停';
                 document.getElementById('icon-play-pause').className = 'fa-solid fa-play text-xs';
             } else {
-                if (animSpeed === 0) {
-                    animSpeed = 1.2;
-                    slider.value = 1.2;
-                }
-                document.getElementById('speed-label').textContent = `${animSpeed.toFixed(1)}x`;
+                if (animSpeed === 0) animSpeed = 1.2;
                 document.getElementById('icon-play-pause').className = 'fa-solid fa-pause text-xs';
             }
         }
@@ -2463,7 +2771,7 @@ body { position: relative; }
             renderer.render(scene, camera);
         }
     </script>
-<!-- teaching-annotation-toolbar:v3:interface:begin -->
+<!-- teaching-annotation-toolbar:v4:interface:begin -->
 <svg id="ink-layer" aria-label="網頁標註層"></svg>
 <div id="ink-magnifier-lens" aria-hidden="true">
     <canvas id="ink-magnifier-canvas" width="230" height="230"></canvas>
@@ -2471,13 +2779,13 @@ body { position: relative; }
     <div id="ink-magnifier-badge">2.0x</div>
 </div>
 <div id="ink-tools" role="toolbar" aria-label="教學標註工具">
-    <button type="button" id="ink-drag" title="拖曳工具列；雙擊回到底部" aria-label="移動工具列；雙擊回到底部，方向鍵可微調">⠿</button>
-    <button type="button" data-ink="cursor" title="操作網頁" aria-pressed="true">↖ 游標</button>
-    <button type="button" data-ink="pan" title="按住網頁拖動捲動位置" aria-label="拖動頁面" aria-pressed="false">✋ 拖動</button>
-    <button type="button" data-ink="pen" title="自由畫筆" aria-pressed="false">✎ 畫筆</button>
-    <button type="button" data-ink="highlight" title="半透明螢光筆" aria-pressed="false">▰ 螢光筆</button>
-    <button type="button" data-ink="text" title="點選位置輸入文字" aria-pressed="false">A 文字</button>
-    <select id="ink-shape" aria-label="選擇圖形工具"><option value="cursor">圖形 ▾</option><option value="rect">□ 方框</option><option value="ellipse">○ 圓框</option><option value="arrow">➜ 箭頭</option></select>
+    <button type="button" id="ink-drag" title="拖曳工具列；雙擊回到底部居中" aria-label="移動工具列">⠿</button>
+    <button type="button" data-ink="cursor" title="游標模式 (操作網頁)" aria-pressed="true">↖</button>
+    <button type="button" data-ink="pan" title="拖動模式 (拖曳捲動頁面)" aria-label="拖動頁面" aria-pressed="false">✋</button>
+    <button type="button" data-ink="pen" title="自由畫筆" aria-pressed="false">✎</button>
+    <button type="button" data-ink="highlight" title="半透明螢光筆" aria-pressed="false">▰</button>
+    <button type="button" data-ink="text" title="文字標註 (點擊畫面輸入)" aria-pressed="false">A</button>
+    <select id="ink-shape" aria-label="選擇圖形工具" title="圖形工具 (方框/圓形/箭頭)"><option value="cursor">◇▾</option><option value="rect">□ 方框</option><option value="ellipse">○ 圓框</option><option value="arrow">➜ 箭頭</option></select>
     <span class="ink-divider" aria-hidden="true"></span>
     <div id="ink-palette" role="group" aria-label="標註顏色">
       <button type="button" class="ink-swatch" data-color="#ef4038" style="--swatch:#ef4038" aria-label="紅色" aria-pressed="true" title="紅色"></button>
@@ -2486,20 +2794,20 @@ body { position: relative; }
       <button type="button" class="ink-swatch" data-color="#ffd000" style="--swatch:#ffd000" aria-label="黃色" aria-pressed="false" title="黃色"></button>
       <button type="button" class="ink-swatch" data-color="#ffffff" style="--swatch:#ffffff" aria-label="白色" aria-pressed="false" title="白色"></button>
     </div>
-    <button type="button" data-ink="magnifier" id="ink-magnifier-btn" title="局部範圍放大鏡 (滾輪可無級縮放倍率 1.5x~4.5x)" aria-pressed="false">🔍 放大鏡</button>
-    <button type="button" data-ink="number" title="點選頁面標上數字" aria-pressed="false">☷ <span id="ink-next-number" aria-hidden="true">1</span></button>
-    <button type="button" id="ink-number-reset" title="從 ① 重新編號，保留已標數字" aria-label="從 ① 重新編號，保留已標數字">↶</button>
-    <label for="ink-size">粗細</label><input type="range" id="ink-size" min="2" max="18" value="4" aria-label="筆畫粗細">
+    <button type="button" data-ink="magnifier" id="ink-magnifier-btn" title="局部範圍放大鏡 (滾輪可無級縮放 1.5x~4.5x)" aria-pressed="false">🔍</button>
+    <button type="button" data-ink="number" title="步驟序號 (依序標註 ①②③...)" aria-pressed="false">☷<span id="ink-next-number" aria-hidden="true">1</span></button>
+    <button type="button" id="ink-number-reset" title="從 ① 重新編號" aria-label="從 ① 重新編號">↶</button>
+    <input type="range" id="ink-size" min="2" max="18" value="4" title="筆畫粗細 (2~18px)" aria-label="筆畫粗細">
     <span class="ink-divider" aria-hidden="true"></span>
-    <button type="button" id="ink-undo" title="復原上一筆" aria-label="復原上一筆">↶</button>
-    <button type="button" id="ink-redo" title="重做上一筆" aria-label="重做上一筆">↷</button>
-    <button type="button" data-ink="eraser" title="點選一筆擦除" aria-pressed="false">⌫ 橡皮擦</button>
-    <button type="button" id="ink-clear" title="清除所有標註">清除</button>
-    <button type="button" id="ink-collapse" title="收合工具列" aria-expanded="true">收合</button>
+    <button type="button" id="ink-undo" title="復原 (Ctrl+Z)" aria-label="復原">↶</button>
+    <button type="button" id="ink-redo" title="重做 (Ctrl+Shift+Z)" aria-label="重做">↷</button>
+    <button type="button" data-ink="eraser" title="橡皮擦 (點選一筆刪除)" aria-pressed="false">⌫</button>
+    <button type="button" id="ink-clear" title="清除所有標註" aria-label="清除所有標註">🗑</button>
+    <button type="button" id="ink-collapse" title="收合工具列" aria-expanded="true">▾</button>
 </div>
-<!-- teaching-annotation-toolbar:v3:interface:end -->
+<!-- teaching-annotation-toolbar:v4:interface:end -->
 
-<!-- teaching-annotation-toolbar:v3:behavior:begin -->
+<!-- teaching-annotation-toolbar:v4:behavior:begin -->
 <script>
 (() => {
   const svg = document.getElementById('ink-layer');
@@ -2529,8 +2837,8 @@ body { position: relative; }
 
   const sizeInput = document.getElementById('ink-size');
   const pageKey = location.pathname || document.title || 'untitled';
-  const key = `teaching-ink-v3:${pageKey}`;
-  const numberKey = `teaching-number-next-v3:${pageKey}`;
+  const key = `teaching-ink-v4:${pageKey}`;
+  const numberKey = `teaching-number-next-v4:${pageKey}`;
   const circledNumbers = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨'];
   const NS = 'http://www.w3.org/2000/svg';
 
@@ -2585,7 +2893,7 @@ body { position: relative; }
     document.getElementById('ink-undo').disabled = !undoStack.length;
     document.getElementById('ink-redo').disabled = !redoStack.length;
     document.getElementById('ink-next-number').textContent = String(nextNumber);
-    tools.querySelector('[data-ink="number"]').setAttribute('aria-label',`數字標記，下一個 ${circledNumbers[nextNumber-1]}`);
+    tools.querySelector('[data-ink="number"]').setAttribute('title',`步驟序號，下一個 ${circledNumbers[nextNumber-1]}`);
   }
 
   function persist() { try { localStorage.setItem(key,JSON.stringify(history)); localStorage.setItem(numberKey,String(nextNumber)); } catch (_) {} }
@@ -2711,11 +3019,20 @@ body { position: relative; }
 
     render();
     tools.querySelectorAll('[data-ink]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ink === next)));
-    if (!['rect','ellipse','arrow'].includes(next)) shapeSelect.value = 'cursor';
+    if (!['rect','ellipse','arrow'].includes(next)) {
+      shapeSelect.value = 'cursor';
+      shapeSelect.options[0].textContent = '◇▾';
+    }
   }
 
   tools.querySelectorAll('[data-ink]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.ink)));
-  shapeSelect.addEventListener('change', () => { if (shapeSelect.value !== 'cursor') setMode(shapeSelect.value); });
+  shapeSelect.addEventListener('change', () => { 
+    if (shapeSelect.value !== 'cursor') {
+      setMode(shapeSelect.value);
+      const icons = { rect: '□▾', ellipse: '○▾', arrow: '➜▾', cursor: '◇▾' };
+      shapeSelect.options[0].textContent = icons[shapeSelect.value] || '◇▾';
+    }
+  });
 
   // 滑鼠滾輪縮放放大鏡倍率
   window.addEventListener('wheel', e => {
@@ -2878,14 +3195,14 @@ body { position: relative; }
 
   // 工具列拖曳與浮動定位
   const dragHandle = document.getElementById('ink-drag');
-  const toolbarPositionKey = `teaching-toolbar-position-v3:${pageKey}`;
+  const toolbarPositionKey = `teaching-toolbar-position-v4:${pageKey}`;
   let drag = null;
   const toolbarScale = () => tools.offsetWidth ? tools.getBoundingClientRect().width / tools.offsetWidth || 1 : 1;
 
   function keepToolbarVisible() {
     if (!tools.classList.contains('ink-floating')) return;
     const scale = toolbarScale();
-    tools.style.maxWidth = `${Math.max(80, (window.innerWidth - 24) / scale)}px`;
+    tools.style.maxWidth = `${Math.max(80, (window.innerWidth - 20) / scale)}px`;
     const rect = tools.getBoundingClientRect();
     const dx = rect.width > window.innerWidth - 16 ? 8 - rect.left : Math.max(8 - rect.left, Math.min(0, window.innerWidth - 8 - rect.right));
     const dy = rect.height > window.innerHeight - 16 ? 8 - rect.top : Math.max(8 - rect.top, Math.min(0, window.innerHeight - 8 - rect.bottom));
@@ -2904,6 +3221,7 @@ body { position: relative; }
     if (tools.classList.contains('ink-floating')) return;
     const rect = tools.getBoundingClientRect(), scale = toolbarScale(), width = tools.offsetWidth;
     tools.classList.add('ink-floating');
+    tools.style.transform = 'none';
     tools.style.width = `${width}px`;
     tools.style.left = `${rect.left / scale}px`;
     tools.style.top = `${rect.top / scale}px`;
@@ -2913,7 +3231,7 @@ body { position: relative; }
   function resetToolbarPosition() {
     drag = null;
     tools.classList.remove('ink-floating');
-    for (const name of ['left','top','width','maxWidth']) tools.style[name] = '';
+    for (const name of ['left','top','width','maxWidth','transform']) tools.style[name] = '';
     try { localStorage.removeItem(toolbarPositionKey); } catch (_) {}
   }
 
@@ -2952,6 +3270,7 @@ body { position: relative; }
     const saved = JSON.parse(localStorage.getItem(toolbarPositionKey) || 'null');
     if (saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)) {
       tools.classList.add('ink-floating');
+      tools.style.transform = 'none';
       tools.style.left = `${saved.left}px`;
       tools.style.top = `${saved.top}px`;
       requestAnimationFrame(keepToolbarVisible);
@@ -2964,7 +3283,8 @@ body { position: relative; }
     const collapsed = tools.classList.toggle('ink-collapsed');
     [...tools.children].forEach(child => { if (child !== e.currentTarget && child !== dragHandle) child.hidden = collapsed; });
     if (tools.classList.contains('ink-floating')) tools.style.width = '';
-    e.currentTarget.textContent = collapsed ? '展開工具' : '收合';
+    e.currentTarget.textContent = collapsed ? '▲' : '▾';
+    e.currentTarget.setAttribute('title', collapsed ? '展開教學工具列' : '收合工具列');
     e.currentTarget.setAttribute('aria-expanded', String(!collapsed));
     if (collapsed) setMode('cursor');
     keepToolbarVisible(); rememberToolbarPosition();
@@ -2982,6 +3302,6 @@ body { position: relative; }
   render();
 })();
 </script>
-<!-- teaching-annotation-toolbar:v3:behavior:end -->
+<!-- teaching-annotation-toolbar:v4:behavior:end -->
 </body>
 </html>
